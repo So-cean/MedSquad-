@@ -8,6 +8,10 @@
 
 config_version=5
 
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
+
 [application]
 
 config/name="EDMAS"

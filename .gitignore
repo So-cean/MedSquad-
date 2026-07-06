@@ -13,6 +13,9 @@
 # Runtime generated data
 npc_memories/
 
+# Web export build artifacts
+build/
+
 # Embedded submodule (ED-MAS reference)
 MedSquad-
 
