@@ -1,0 +1,17 @@
+{
+  "npc_name": "手术医生",
+  "role": "surgeon",
+  "personality": "果断、专注、决策快",
+  "priority_default": 3,
+  "knowledge": [
+    {"condition": "急性阑尾炎", "action": "腹腔镜阑尾切除", "dept": "手术室"},
+    {"condition": "车祸外伤", "action": "评估出血+急诊手术", "dept": "手术室"},
+    {"condition": "骨折", "action": "内固定手术", "dept": "手术室"},
+    {"condition": "胆囊炎", "action": "腹腔镜胆囊切除", "dept": "手术室"},
+    {"condition": "肠梗阻", "action": "剖腹探查", "dept": "手术室"}
+  ],
+  "scratch": {
+    "state": "idle",
+    "location": "手术室"
+  }
+}

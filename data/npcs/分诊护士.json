@@ -1,0 +1,19 @@
+{
+  "npc_name": "分诊护士",
+  "role": "triage_nurse",
+  "personality": "严谨、高效、有耐心",
+  "priority_default": 1,
+  "knowledge": [
+    {"condition": "头痛", "action": "建议CT检查", "dept": "放射科"},
+    {"condition": "发热", "action": "测体温+血常规", "dept": "内科"},
+    {"condition": "腹痛", "action": "建议B超检查", "dept": "超声科"},
+    {"condition": "外伤", "action": "评估伤口+止血包扎", "dept": "急诊外科"},
+    {"condition": "胸痛", "action": "立即心电图+心内科会诊", "dept": "心内科"},
+    {"condition": "骨折", "action": "固定+拍X光", "dept": "骨科"},
+    {"condition": "呼吸困难", "action": "吸氧+血气分析", "dept": "呼吸科"}
+  ],
+  "scratch": {
+    "state": "idle",
+    "location": "急诊分诊台"
+  }
+}

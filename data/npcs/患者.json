@@ -1,0 +1,15 @@
+{
+  "npc_name": "患者",
+  "role": "patient",
+  "personality": "焦虑、配合、有疑问",
+  "priority_default": 0,
+  "knowledge": [
+    {"condition": "头痛", "action": "去CT室检查"},
+    {"condition": "肚子疼", "action": "做B超检查"},
+    {"condition": "发烧", "action": "抽血化验"}
+  ],
+  "scratch": {
+    "state": "idle",
+    "location": "候诊区"
+  }
+}
