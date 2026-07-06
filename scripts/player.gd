@@ -9,6 +9,7 @@ var _facing: Dir = Dir.DOWN
 var _moving: bool = false
 var _state: String = "idle_down"
 var _frame_time: float = 0.0
+var _joystick = null
 
 
 # ── ready ──────────────────────────────────────────────────────
@@ -19,6 +20,7 @@ func _ready() -> void:
 	_build_frames()
 	_anim.animation = "idle_down"
 	_anim.frame = 0
+	_setup_joystick()
 
 
 func _setup_inputs() -> void:
@@ -96,8 +98,37 @@ func _load(filename: String) -> Texture2D:
 
 # ── physics / manual frame advance ────────────────────────────
 
+func _setup_joystick() -> void:
+	# Virtual joystick for mobile touch — only created on touch-capable devices
+	if DisplayServer.is_touchscreen_available():
+		var layer := CanvasLayer.new()
+		layer.layer = 200
+		add_child(layer)
+
+		var js := VirtualJoystick.new()
+		js.name = "VirtualJoystick"
+		js.anchor_right = 0.5
+		js.anchor_bottom = 1.0
+		layer.add_child(js)
+		_joystick = js
+
+
+## Read movement from keyboard (desktop) or virtual joystick (mobile).
+func _get_move_input() -> Vector2:
+	# Keyboard always works
+	var kb := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if kb.length_squared() > 0.01:
+		return kb
+	# Joystick fallback
+	if _joystick:
+		var js: Vector2 = _joystick.get_vector()
+		if js.length_squared() > 0.01:
+			return js
+	return Vector2.ZERO
+
+
 func _physics_process(delta: float) -> void:
-	var raw := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var raw := _get_move_input()
 	_moving = raw.length() > 0.01
 
 	if _moving:
