@@ -6,22 +6,43 @@ Godot 4.7 医院主题 2D 俯视角游戏。模拟急诊科多个 NPC 的对话�
 
 ## 启动
 
-### 本地运行
+### 方式一：Windows 可执行文件 (EXE)
+
+项目根目录已捆绑 Godot 4.7 编辑器，无需额外安装：
 
 ```bash
 bin\godot.exe
 ```
 
-或在 Godot 编辑器中打开 `project.godot`。
+或在 Godot 编辑器中打开 `project.godot`，按 F5 运行。
 
-### 网页版
+### 方式二：网页版 (WebAssembly)
 
-访问 [https://so-cean.github.io/MedSquad-/](https://so-cean.github.io/MedSquad-/)（需要管理员在仓库 Settings → Pages 中启用 gh-pages 分支后生效）。
+**在线游玩：** [https://so-cean.github.io/MedSquad-/](https://so-cean.github.io/MedSquad-/)
+
+**本地测试 Web 构建：**
+
+```bash
+# 1. 导出 Web 构建
+.\bin\godot.exe --headless --export-release Web build/web/index.html
+
+# 2. 启动 HTTP 服务器（Web 导出不能直接双击 index.html 打开，
+#    因为浏览器安全策略禁止 file:// 加载 WebAssembly）
+cd build\web
+python -m http.server 8080
+
+# 3. 浏览器访问 http://localhost:8080
+```
+
+> 本地双击 `build/web/index.html` 会报 `Failed to fetch` 错误，这是正常的浏览器 CORS 限制，必须通过 HTTP 服务器访问。
+
+### CI/CD 自动部署
 
 每次 push 到 `main`，GitHub Actions 自动：
 1. 拉取 `barichello/godot-ci:4.7` Docker 镜像
 2. 运行 Web 导出（单线程，兼容 GitHub Pages）
 3. 部署到 `gh-pages` 分支
+4. GitHub Pages 自动更新（首次需在仓库 Settings → Pages 中选择 `gh-pages` 分支）
 
 ---
 
