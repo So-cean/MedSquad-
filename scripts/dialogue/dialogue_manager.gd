@@ -124,10 +124,12 @@ func _setup_chinese_font_fallback() -> void:
 	var theme = ThemeDB.get_project_theme()
 	if not theme:
 		return
-	# Add NotoSansSC as fallback to default theme fonts.
-	# Primary font (Open Sans) provides emoji; NotoSansSC fills Chinese glyphs.
-	for font_type in ["RichTextLabel", "Label"]:
-		for font_name in ["font", "normal_font", "bold_font", "italics_font"]:
-			var f = theme.get_font(font_name, font_type)
-			if f and f.get_fallback_count() == 0:
-				f.add_fallback(cn_font)
+	# Add NotoSansSC as fallback to default fonts.
+	# Primary font has emoji; NotoSansSC fills Chinese glyphs.
+	for font_name in ["font", "normal_font"]:
+		var f = theme.get_font(font_name, "RichTextLabel")
+		if f is FontFile and f.fallbacks.is_empty():
+			f.fallbacks = [cn_font]
+		f = theme.get_font(font_name, "Label")
+		if f is FontFile and f.fallbacks.is_empty():
+			f.fallbacks = [cn_font]
