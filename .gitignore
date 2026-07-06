@@ -16,6 +16,9 @@ npc_memories/
 # Web export build artifacts
 build/
 
+# Bundled Godot editor (too large for GitHub, download from godotengine.org)
+bin/
+
 # Embedded submodule (ED-MAS reference)
 MedSquad-
 

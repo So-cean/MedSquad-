@@ -6,15 +6,9 @@ Godot 4.7 医院主题 2D 俯视角游戏。模拟急诊科多个 NPC 的对话�
 
 ## 启动
 
-### 方式一：Windows 可执行文件 (EXE)
+### 方式一：Godot 编辑器
 
-项目根目录已捆绑 Godot 4.7 编辑器，无需额外安装：
-
-```bash
-bin\godot.exe
-```
-
-或在 Godot 编辑器中打开 `project.godot`，按 F5 运行。
+从 [godotengine.org/download](https://godotengine.org/download/) 下载 **Godot 4.7** 标准版，打开 `project.godot`，按 F5 运行。
 
 ### 方式二：网页版 (WebAssembly)
 
