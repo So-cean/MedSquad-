@@ -1,0 +1,25 @@
+# Godot editor cache
+/.godot/
+
+# Imported assets (auto-generated)
+*.png.import
+*.jpg.import
+*.jpeg.import
+*.svg.import
+*.ttf.import
+*.wav.import
+*.ogg.import
+
+# Embedded submodule (ED-MAS reference)
+MedSquad-
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python / tooling
+__pycache__/
+*.pyc
+*.pyo
+.env

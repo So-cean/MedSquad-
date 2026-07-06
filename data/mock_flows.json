@@ -1,0 +1,206 @@
+{
+  "flows": [
+    {
+      "name": "triage",
+      "priority_base": 1,
+      "steps": [
+        {
+          "speaker": "分诊护士",
+          "listener": "患者",
+          "think": "患者主诉头痛3天\n正在检索电子病历...\n无过敏史记录\n当前科室: 急诊",
+          "dialogue": "您好，根据您的症状，建议前往CT室做进一步检查。CT室在走廊右侧。",
+          "duration": 4.0,
+          "priority": 1
+        },
+        {
+          "speaker": "患者",
+          "listener": "分诊护士",
+          "think": "护士让我去CT室\nCT室在急诊右侧走廊尽头\n我应该现在过去",
+          "dialogue": "好的，我这就去CT室。",
+          "duration": 3.0,
+          "priority": 0
+        },
+        {
+          "speaker": "分诊护士",
+          "listener": "患者",
+          "think": "已为患者指引CT室\n等待下一个患者\n当前排队: 2人",
+          "dialogue": "下一位请到3号诊室。",
+          "duration": 3.0,
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "emergency",
+      "priority_base": 4,
+      "steps": [
+        {
+          "speaker": "急救护士",
+          "listener": "手术医生",
+          "think": "接到120急救通知\n患者信息: 车祸外伤\n生命体征: 血压70/40\n需要立即手术",
+          "dialogue": "急诊手术！患者血压70/40，需要马上准备手术室！",
+          "duration": 3.0,
+          "priority": 4
+        },
+        {
+          "speaker": "手术医生",
+          "listener": "急救护士",
+          "think": "收到急救通知\n查看患者信息: 车祸外伤\n评估需要: 骨科+普外联合\n手术室3已空",
+          "dialogue": "收到，我马上通知手术室准备。需要骨科和普外联合。",
+          "duration": 3.0,
+          "priority": 3
+        },
+        {
+          "speaker": "急救护士",
+          "listener": "手术医生",
+          "think": "手术医生已确认\n通知手术室: 3号手术间\n准备时间: 5分钟",
+          "dialogue": "手术室3已准备，患者正在转运。",
+          "duration": 3.0,
+          "priority": 4
+        }
+      ]
+    },
+    {
+      "name": "lab_result",
+      "priority_base": 2,
+      "steps": [
+        {
+          "speaker": "检验科护士",
+          "listener": "分诊护士",
+          "think": "检验结果完成\n患者: 血常规 + CRP\nWBC: 12.5×10⁹/L ↑\nCRP: 35mg/L ↑\n提示: 细菌感染",
+          "dialogue": "李四的检验结果出来了，血象和CRP都偏高，提示细菌感染。",
+          "duration": 3.0,
+          "priority": 2
+        },
+        {
+          "speaker": "分诊护士",
+          "listener": "检验科护士",
+          "think": "收到检验结果\n细菌感染确证\n需要开抗生素\n建议科室: 内科",
+          "dialogue": "好的，我通知内科医生开抗生素处方。",
+          "duration": 2.0,
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "ward_round",
+      "priority_base": 1,
+      "steps": [
+        {
+          "speaker": "住院护士",
+          "listener": "患者",
+          "think": "查房患者: 骨折术后第2天\n查看生命体征: 稳定\n伤口情况: 无红肿\n疼痛评分: 3/10",
+          "dialogue": "早上好，昨晚睡得怎么样？伤口还疼吗？",
+          "duration": 3.0,
+          "priority": 1
+        },
+        {
+          "speaker": "患者",
+          "listener": "住院护士",
+          "think": "住院护士来查房\n问我的伤口情况\n我现在感觉好多了",
+          "dialogue": "好多了，伤口不怎么疼了。",
+          "duration": 2.0,
+          "priority": 0
+        },
+        {
+          "speaker": "住院护士",
+          "listener": "患者",
+          "think": "患者恢复良好\n今天可以下床活动\n明天复查X光\n预计3天后出院",
+          "dialogue": "恢复得不错，今天可以试着下床走走了。明天拍个片子看看。",
+          "duration": 3.0,
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "medication",
+      "priority_base": 1,
+      "steps": [
+        {
+          "speaker": "分诊护士",
+          "listener": "患者",
+          "think": "患者需要服用抗生素\n药物: 阿莫西林\n剂量: 每次0.5g，一日三次\n注意事项: 饭后服用",
+          "dialogue": "这是您的抗生素，每天三次，每次一片，饭后服用。",
+          "duration": 3.0,
+          "priority": 1
+        },
+        {
+          "speaker": "患者",
+          "listener": "分诊护士",
+          "think": "护士给我开了抗生素\n需要饭后服用\n一天三次",
+          "dialogue": "好的，我记住了，饭后吃。",
+          "duration": 2.0,
+          "priority": 0
+        },
+        {
+          "speaker": "分诊护士",
+          "listener": "患者",
+          "think": "已交代用药事项\n患者已理解\n记录完成",
+          "dialogue": "如果出现皮疹或不适，请及时来急诊。",
+          "duration": 3.0,
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "surgery_prep",
+      "priority_base": 3,
+      "steps": [
+        {
+          "speaker": "手术医生",
+          "listener": "急救护士",
+          "think": "急诊手术安排\n患者: 急性阑尾炎\n手术方式: 腹腔镜阑尾切除\n预计时长: 1小时\n麻醉方式: 全麻",
+          "dialogue": "手术室准备好了吗？患者是急性阑尾炎，需要腹腔镜切除。",
+          "duration": 3.0,
+          "priority": 3
+        },
+        {
+          "speaker": "急救护士",
+          "listener": "手术医生",
+          "think": "收到手术通知\n手术室5已消毒\n器械包已准备\n麻醉医生已通知",
+          "dialogue": "手术室5已经准备好了，器械包和麻醉都没问题。",
+          "duration": 2.0,
+          "priority": 2
+        },
+        {
+          "speaker": "手术医生",
+          "listener": "急救护士",
+          "think": "所有准备就绪\n开始术前核对\n患者已签署同意书",
+          "dialogue": "好，开始术前核对，10分钟后手术。",
+          "duration": 3.0,
+          "priority": 3
+        }
+      ]
+    },
+    {
+      "name": "shift_change",
+      "priority_base": 1,
+      "steps": [
+        {
+          "speaker": "急救护士",
+          "listener": "分诊护士",
+          "think": "夜班交班\n3床: 心梗术后稳定\n5床: 肺炎抗生素治疗中\n7床: 新收腹痛待查\n重点: 5床凌晨有低烧",
+          "dialogue": "交班了。3床心梗术后稳定，5床肺炎凌晨低烧37.8度，7床新收的腹痛待查。",
+          "duration": 3.0,
+          "priority": 1
+        },
+        {
+          "speaker": "分诊护士",
+          "listener": "急救护士",
+          "think": "接收夜班交班\n重点关注5床低烧\n7床需要安排检查\n白天还有2台手术",
+          "dialogue": "收到，我重点关注5床和7床。白天还有两台手术安排吗？",
+          "duration": 3.0,
+          "priority": 1
+        },
+        {
+          "speaker": "急救护士",
+          "listener": "分诊护士",
+          "think": "交班完成\n可以下班了\n白天手术: 胆囊+阑尾",
+          "dialogue": "对，胆囊和阑尾两台。辛苦了，我先下班了。",
+          "duration": 2.0,
+          "priority": 1
+        }
+      ]
+    }
+  ]
+}
