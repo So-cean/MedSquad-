@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 env:
   GODOT_VERSION: 4.7
 
@@ -24,10 +27,11 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
+      - name: Create build directory
+        run: mkdir -p build/web
+
       - name: Web export
-        run: |
-          mkdir -p build/web
-          godot --headless --export-release Web build/web/index.html
+        run: godot --headless --export-release Web build/web/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -35,3 +39,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
           force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
