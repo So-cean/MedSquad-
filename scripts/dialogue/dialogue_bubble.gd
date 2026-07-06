@@ -22,7 +22,7 @@ const PAD_V := 10
 const TAIL_W := 14.0
 const TAIL_H := 8.0
 const FONT_SIZE := 13
-const FONT_SIZE_ICON := 13
+const FONT_SIZE_ICON := 16
 const COLOR_BG := Color(1, 1, 1, 0.95)
 const COLOR_TEXT := Color(0.15, 0.15, 0.15)
 const COLOR_THINK := Color(0.25, 0.40, 0.80)   # blue  ← user request
@@ -220,10 +220,6 @@ func _build_ui() -> void:
 	_text_label.fit_content = true
 	_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text_label.scroll_following = true
-	# Explicitly set a Chinese-capable font for web export
-	var cn_font = load("res://assets/fonts/NotoSansSC-VF.ttf")
-	if cn_font:
-		_text_label.add_theme_font_override("normal_font", cn_font)
 	_text_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_text_label.add_theme_color_override("default_color", COLOR_THINK)
 	_text_label.custom_minimum_size = Vector2(MAX_WIDTH - 48, 0)
