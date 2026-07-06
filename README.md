@@ -6,11 +6,22 @@ Godot 4.7 医院主题 2D 俯视角游戏。模拟急诊科多个 NPC 的对话�
 
 ## 启动
 
+### 本地运行
+
 ```bash
 bin\godot.exe
 ```
 
 或在 Godot 编辑器中打开 `project.godot`。
+
+### 网页版
+
+访问 [https://so-cean.github.io/MedSquad-/](https://so-cean.github.io/MedSquad-/)（需要管理员在仓库 Settings → Pages 中启用 gh-pages 分支后生效）。
+
+每次 push 到 `main`，GitHub Actions 自动：
+1. 拉取 `barichello/godot-ci:4.7` Docker 镜像
+2. 运行 Web 导出（单线程，兼容 GitHub Pages）
+3. 部署到 `gh-pages` 分支
 
 ---
 
