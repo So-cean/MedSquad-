@@ -10,6 +10,9 @@
 *.wav.import
 *.ogg.import
 
+# Runtime generated data
+npc_memories/
+
 # Embedded submodule (ED-MAS reference)
 MedSquad-
 
