@@ -99,14 +99,15 @@ func _load(filename: String) -> Texture2D:
 # ── physics / manual frame advance ────────────────────────────
 
 func _setup_joystick() -> void:
-	# Virtual joystick for mobile touch — only created on touch-capable devices
 	if DisplayServer.is_touchscreen_available():
+		var js_script = load("res://scripts/ui/virtual_joystick.gd")
+		if not js_script:
+			return
 		var layer := CanvasLayer.new()
 		layer.layer = 200
 		add_child(layer)
-
-		var js := VirtualJoystick.new()
-		js.name = "VirtualJoystick"
+		var js = js_script.new()
+		js.name = "TouchJoystick"
 		js.anchor_right = 0.5
 		js.anchor_bottom = 1.0
 		layer.add_child(js)
