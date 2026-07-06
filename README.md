@@ -18,7 +18,7 @@ Godot 4.7 医院主题 2D 俯视角游戏。模拟急诊科多个 NPC 的对话�
 
 ```bash
 # 1. 导出 Web 构建
-.\bin\godot.exe --headless --export-release Web build/web/index.html
+godot --headless --audio-driver Dummy --export-release Web build/web/index.html
 
 # 2. 启动 HTTP 服务器（Web 导出不能直接双击 index.html 打开，
 #    因为浏览器安全策略禁止 file:// 加载 WebAssembly）

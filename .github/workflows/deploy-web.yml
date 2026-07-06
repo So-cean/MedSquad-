@@ -37,7 +37,7 @@ jobs:
         run: mkdir -p build/web
 
       - name: Web export
-        run: godot --headless --export-release Web build/web/index.html
+        run: godot --headless --audio-driver Dummy --export-release Web build/web/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
