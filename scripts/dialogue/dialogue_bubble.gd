@@ -220,6 +220,10 @@ func _build_ui() -> void:
 	_text_label.fit_content = true
 	_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text_label.scroll_following = true
+	# Explicitly set a Chinese-capable font for web export
+	var cn_font = load("res://assets/fonts/NotoSansSC-VF.ttf")
+	if cn_font:
+		_text_label.add_theme_font_override("normal_font", cn_font)
 	_text_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_text_label.add_theme_color_override("default_color", COLOR_THINK)
 	_text_label.custom_minimum_size = Vector2(MAX_WIDTH - 48, 0)
