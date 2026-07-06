@@ -59,11 +59,24 @@ func _init() -> void:
 
 func _ready() -> void:
 	_build_ui()
+	_setup_font_with_chinese_fallback()
 	_typewriter = Timer.new()
 	_typewriter.one_shot = false
 	_typewriter.timeout.connect(_on_typewriter_tick)
 	add_child(_typewriter)
 	hide()
+
+
+func _setup_font_with_chinese_fallback() -> void:
+	var cn_font = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
+	if not cn_font:
+		return
+	# Get default RichTextLabel font → duplicate → add Chinese fallback → override
+	var base = _text_label.get_theme_font("normal_font") as FontFile
+	if base:
+		var merged = base.duplicate()
+		merged.fallbacks = [cn_font]
+		_text_label.add_theme_font_override("normal_font", merged)
 
 
 func _draw() -> void:

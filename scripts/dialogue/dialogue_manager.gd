@@ -39,9 +39,7 @@ func _ready() -> void:
 	mock.name = "MockDialogueSystem"
 	add_child(mock)
 
-	# Load Chinese font as fallback for default theme fonts.
-	# This ensures Chinese text renders in Web exports without breaking emoji.
-	_setup_chinese_font_fallback()
+	# Chinese font fallback is handled per-bubble in DialogueBubble._ready()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -117,19 +115,4 @@ func _release_bubble(npc: BaseNpc) -> void:
 	b.fade_out()
 
 
-func _setup_chinese_font_fallback() -> void:
-	var cn_font = load("res://assets/fonts/NotoSansSC-VF.ttf")
-	if not cn_font:
-		return
-	var theme = ThemeDB.get_project_theme()
-	if not theme:
-		return
-	# Add NotoSansSC as fallback to default fonts.
-	# Primary font has emoji; NotoSansSC fills Chinese glyphs.
-	for font_name in ["font", "normal_font"]:
-		var f = theme.get_font(font_name, "RichTextLabel")
-		if f is FontFile and f.fallbacks.is_empty():
-			f.fallbacks = [cn_font]
-		f = theme.get_font(font_name, "Label")
-		if f is FontFile and f.fallbacks.is_empty():
-			f.fallbacks = [cn_font]
+
