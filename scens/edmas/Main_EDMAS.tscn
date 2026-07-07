@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/edmas/api_client.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/edmas/patient_manager.gd" id="3"]
 [ext_resource type="PackedScene" path="res://scens/edmas/HospitalMap.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="5"]
 
 [node name="Main_EDMAS" type="Control"]
 script = ExtResource("1")
@@ -93,3 +94,75 @@ text = "Talk"
 
 [node name="NextDialogueButton" type="Button" parent="CanvasLayer/UI/DialoguePanel/VBox/HBox"]
 text = "Next"
+
+[node name="NPC_TriageNurse" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(310, 200)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "分诊护士"
+npc_frames_dir = "res://assets/nurse_frames/"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_TriageNurse"]
+
+[node name="NPC_Surgeon" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(560, 200)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "手术医生"
+npc_frames_dir = "res://assets/scrubs_green_frames/"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Surgeon"]
+
+[node name="NPC_EmergencyNurse" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(690, 200)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "急救护士"
+npc_frames_dir = "res://assets/nurse_blue_frames/"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_EmergencyNurse"]
+
+[node name="NPC_LabNurse" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(220, 230)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "检验科护士"
+npc_frames_dir = "res://assets/scrubs_blue_frames/"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_LabNurse"]
+
+[node name="NPC_WardNurse" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(540, 250)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "住院护士"
+npc_frames_dir = "res://assets/nurse_green_frames/"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_WardNurse"]
+
+[node name="NPC_Patient1" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(430, 200)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "患者"
+npc_frames_dir = "res://assets/patient_blue_frames/"
+npc_walk_flip = Array[String](["up", "down"])
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Patient1"]
+
+[node name="NPC_Patient2" type="CharacterBody2D" parent="MapRoot"]
+position = Vector2(430, 230)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("5")
+npc_display_name = "患者"
+npc_frames_dir = "res://assets/patient_green_frames/"
+npc_walk_flip = Array[String](["up", "down"])
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Patient2"]
