@@ -107,7 +107,7 @@ func _execute_next() -> void:
 	var speaker := _find_npc(speaker_name)
 	var listener := _find_npc(listener_name)
 
-	if not speaker:
+	if not speaker or not listener:
 		_flow_idx += 1
 		_execute_next()  # skip missing NPC
 		return

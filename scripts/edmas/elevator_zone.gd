@@ -1,9 +1,6 @@
-class_name ElevatorZone
 extends Area2D
 
 ## Elevator interaction zone. Player walks in → hint shows → E/Q to change floor.
-
-signal request_switch_map(direction: int)  # +1 = next, -1 = prev
 
 @onready var _player_ref = null
 
