@@ -10,14 +10,22 @@ const MAP_BY_LOCATION := Config.LOCATION_TO_MAP
 const MARKER_BY_LOCATION := Config.LOCATION_TO_MARKER
 const MAP_TEXTURE_PATHS := Config.MAP_TEXTURE_PATHS
 
+var _current_map_id: String = "MAP_ED_CORE"
+
+
 func _ready() -> void:
 	show_map_for_location("ED_ENTRANCE")
+
+
+func get_current_map_id() -> String:
+	return _current_map_id
 
 func show_map_for_location(location_name: String) -> void:
 	var map_id: String = get_map_id_for_location(location_name)
 	map_ed_core.visible = map_id == "MAP_ED_CORE"
 	map_diagnostics.visible = map_id == "MAP_DIAGNOSTICS"
 	map_downstream.visible = map_id == "MAP_DOWNSTREAM"
+	_current_map_id = map_id
 
 func get_map_id_for_location(location_name: String) -> String:
 	var map_value: Variant = MAP_BY_LOCATION.get(location_name, "MAP_ED_CORE")

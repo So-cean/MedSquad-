@@ -24,6 +24,15 @@ hospital_map_path = NodePath("../HospitalMapManager")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 10
 
+[node name="FadeOverlay" type="ColorRect" parent="CanvasLayer"]
+visible = true
+color = Color(0, 0, 0, 0)
+mouse_filter = 2
+offset_left = -100
+offset_top = -100
+offset_right = 1380
+offset_bottom = 820
+
 [node name="UI" type="Control" parent="CanvasLayer"]
 visible = true
 offset_left = 0.0

@@ -8,6 +8,7 @@ const MAP_SIZE := Vector2(1672.0, 941.0)
 @onready var map_root: Node2D = $MapRoot
 @onready var hospital_map_manager: Node = $MapRoot/HospitalMapManager
 @onready var patient_manager: Node = $MapRoot/PatientManager
+@onready var fade_overlay: ColorRect = $CanvasLayer/FadeOverlay
 @onready var mock_mode_toggle: CheckBox = $CanvasLayer/UI/VBox/MockModeToggle
 @onready var current_location_label: Label = $CanvasLayer/UI/VBox/CurrentLocationLabel
 @onready var current_state_label: Label = $CanvasLayer/UI/VBox/CurrentStateLabel
@@ -147,10 +148,29 @@ func _apply_snapshot(snapshot: Dictionary) -> void:
 	patient_manager.apply_snapshot(snapshot)
 	var patient: Dictionary = _extract_patient(snapshot)
 	_set_active_patient(patient)
-	if hospital_map_manager != null and hospital_map_manager.has_method("show_map_for_location"):
-		hospital_map_manager.show_map_for_location(str(patient.get("location", "ED_ENTRANCE")))
-	else:
-		error_label.text = "hospital map manager missing show_map_for_location"
+	_switch_map_with_fade(str(patient.get("location", "ED_ENTRANCE")))
+
+
+func _switch_map_with_fade(location_name: String) -> void:
+	if hospital_map_manager == null or not hospital_map_manager.has_method("show_map_for_location"):
+		return
+	var old_map: String = ""
+	if hospital_map_manager.has_method("get_current_map_id"):
+		old_map = hospital_map_manager.get_current_map_id()
+	var new_map: String = hospital_map_manager.get_map_id_for_location(location_name)
+	if old_map == new_map:
+		# Same map, no fade needed
+		hospital_map_manager.show_map_for_location(location_name)
+		return
+
+	# Cross-map: fade out → switch → fade in
+	fade_overlay.modulate = Color(0, 0, 0, 0)
+	var t := create_tween()
+	t.tween_property(fade_overlay, "modulate", Color(0, 0, 0, 1), 0.2)
+	t.tween_callback(func():
+		hospital_map_manager.show_map_for_location(location_name)
+	)
+	t.tween_property(fade_overlay, "modulate", Color(0, 0, 0, 0), 0.2)
 
 func _set_active_patient(patient: Dictionary) -> void:
 	var patient_id: String = str(patient.get("patient_id", ""))
