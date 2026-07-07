@@ -17,7 +17,7 @@ static func load_npc(npc_name: String) -> Dictionary:
 		push_error("NPCDataLoader: cannot open ", path)
 		return {}
 	var text := file.get_as_text()
-	var result := JSON.parse_string(text)
+	var result: Variant = JSON.parse_string(text)
 	if not result is Dictionary:
 		push_error("NPCDataLoader: invalid JSON in ", path)
 		return {}
@@ -26,23 +26,25 @@ static func load_npc(npc_name: String) -> Dictionary:
 
 ## Returns the knowledge list for an NPC.
 static func get_knowledge(npc_name: String) -> Array:
-	var data := load_npc(npc_name)
-	return data.get("knowledge", [])
+	var data: Dictionary = load_npc(npc_name)
+	var knowledge: Array = data.get("knowledge", [])
+	return knowledge
 
 
 ## Returns the default priority for an NPC.
 static func get_default_priority(npc_name: String) -> int:
-	var data := load_npc(npc_name)
-	return data.get("priority_default", 0)
+	var data: Dictionary = load_npc(npc_name)
+	return int(data.get("priority_default", 0))
 
 
 ## Returns the scratch state for an NPC.
 static func get_scratch(npc_name: String) -> Dictionary:
-	var data := load_npc(npc_name)
-	return data.get("scratch", {})
+	var data: Dictionary = load_npc(npc_name)
+	var scratch: Dictionary = data.get("scratch", {})
+	return scratch
 
 
 ## Returns the personality description.
 static func get_personality(npc_name: String) -> String:
-	var data := load_npc(npc_name)
-	return data.get("personality", "")
+	var data: Dictionary = load_npc(npc_name)
+	return str(data.get("personality", ""))
