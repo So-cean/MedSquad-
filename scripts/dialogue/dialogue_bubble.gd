@@ -1,18 +1,13 @@
 class_name DialogueBubble
 extends Control
 
-## Clean speech-bubble UI.
+## Speech-bubble UI with robust async lifecycle.
 ##
-## Lifecycle:
-##   1. show_entry() → build/reset UI
-##   2. THINK phase: think text types out (typewriter)
-##   3. THINK done → 0.5s pause → fade out think
-##   4. UTTERANCE phase: show utterances[] one by one, each 2.5s
-##   5. All utterances done → bubble stays visible until faded out by manager
+## Thread-safe for re-entry: if show_entry() is called while utterances are
+## still playing, pending timers are discarded via a sequence counter.
 
 enum Phase { IDLE, THINK, UTTERANCE, DONE }
 
-# ── Constants ──
 const MAX_WIDTH := 220
 const MIN_WIDTH := 120
 const MAX_HEIGHT := 180.0
@@ -33,7 +28,7 @@ const UTTERANCE_TIME := 2.5
 # ── Node refs ──
 var _panel: Panel
 var _scroll: ScrollContainer
-var _row: HBoxContainer           # icon + text
+var _row: HBoxContainer
 var _icon: Label
 var _label: RichTextLabel
 var _think_bg: ColorRect
@@ -50,6 +45,7 @@ var _current_entry: DialogueEntry = null
 var _needs_resize := false
 var _is_fading := false
 var _fade_tween: Tween = null
+var _seq: int = 0  # incremented on each show_entry(); async callbacks check this
 
 
 func _init() -> void:
@@ -78,7 +74,9 @@ func fade_out() -> void:
 	if _is_fading or not visible:
 		return
 	_is_fading = true
+	_typewriter.stop()
 	_kill_tweens()
+	_seq += 1  # Discard any pending async callbacks
 	_fade_tween = create_tween()
 	_fade_tween.tween_property(self, "modulate:a", 0.0, 0.4)
 	_fade_tween.tween_callback(func():
@@ -90,10 +88,14 @@ func fade_out() -> void:
 
 
 func show_entry(entry: DialogueEntry) -> void:
+	_seq += 1  # Invalidate old async callbacks
+	var my_seq := _seq
+
 	if _is_fading:
 		_kill_tweens()
 		_is_fading = false
 		modulate.a = 1.0
+	_typewriter.stop()
 
 	_current_entry = entry
 	if entry.is_empty():
@@ -105,6 +107,11 @@ func show_entry(entry: DialogueEntry) -> void:
 	_utterances = entry.utterances.duplicate()
 	_utter_idx = 0
 	_think_pos = 0
+	_phase = Phase.THINK
+
+	if not _label or not _row or not _think_bg or not _icon:
+		push_error("DialogueBubble: UI not fully built")
+		return
 
 	_label.text = ""
 	_label.modulate = Color.WHITE
@@ -116,11 +123,7 @@ func show_entry(entry: DialogueEntry) -> void:
 	_needs_resize = true
 
 	if _think_text.is_empty():
-		# No think → jump to utterances
-		_icon.text = "🗣"
-		_label.add_theme_color_override("default_color", COLOR_TEXT)
-		_think_bg.hide()
-		_show_next_utterance()
+		_show_dialogue(my_seq)
 	else:
 		_think_bg.show()
 		_typewriter.start(TYPEWRITER_INTERVAL)
@@ -133,7 +136,7 @@ func follow_screen_position(cx: float, by: float) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Internal UI build
+#  Internal
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
@@ -186,6 +189,8 @@ func _build_ui() -> void:
 
 
 func _reflow() -> void:
+	if not _row:
+		return
 	var min_size := _row.get_combined_minimum_size()
 	var bw: float = clamp(min_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
 	var content_h := min_size.y + PAD_V
@@ -193,17 +198,16 @@ func _reflow() -> void:
 
 	size = Vector2(bw, bh)
 	var panel_h := bh - TAIL_H
-	_panel.position = Vector2.ZERO
-	_panel.size = Vector2(bw, panel_h)
-	_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
-	_scroll.size = Vector2(bw - PAD_H, panel_h - PAD_V)
-	_row.size = Vector2(bw - PAD_H - 4, min_size.y)
+	if _panel: _panel.size = Vector2(bw, panel_h)
+	if _scroll:
+		_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
+		_scroll.size = Vector2(bw - PAD_H, panel_h - PAD_V)
+	if _row: _row.size = Vector2(bw - PAD_H - 4, min_size.y)
+	if _think_bg:
+		_think_bg.position = Vector2.ZERO
+		_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
 
-	_think_bg.position = Vector2.ZERO
-	_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
-
-	# Auto-scroll
-	var sb := _scroll.get_v_scroll_bar()
+	var sb := _scroll.get_v_scroll_bar() if _scroll else null
 	if sb:
 		_scroll.scroll_vertical = int(sb.max_value)
 
@@ -239,43 +243,58 @@ func _on_tick() -> void:
 		_typewriter.stop()
 		_start_think_fadeout()
 		return
-	_label.text = _think_text.left(_think_pos)
-	_needs_resize = true
+	if _label:
+		_label.text = _think_text.left(_think_pos)
+		_needs_resize = true
 
 
 func _start_think_fadeout() -> void:
+	var my_seq := _seq
 	await get_tree().create_timer(THINK_PAUSE).timeout
-	if not is_instance_valid(self):
+	if my_seq != _seq or not is_instance_valid(self):
 		return
 	_phase = Phase.UTTERANCE
 	var t := create_tween()
 	t.tween_property(_row, "modulate:a", 0.0, FADE_DURATION)
 	t.parallel().tween_property(_think_bg, "modulate:a", 0.0, FADE_DURATION)
-	t.tween_callback(_show_next_utterance)
+	t.tween_callback(_show_dialogue.bind(my_seq))
 
 
-func _show_next_utterance() -> void:
+func _show_dialogue(my_seq: int = -1) -> void:
+	if my_seq >= 0 and my_seq != _seq:
+		return  # superseded by a newer show_entry() call
 	if not is_instance_valid(self):
+		return
+	_phase = Phase.UTTERANCE
+	if _label:
+		_label.add_theme_color_override("default_color", COLOR_TEXT)
+	if _icon:
+		_icon.text = "🗣"
+	if _row:
+		_row.modulate = Color.WHITE
+	if _think_bg:
+		_think_bg.hide()
+
+	_utter_idx = 0
+	_advance_utterance(my_seq)
+
+
+func _advance_utterance(my_seq: int) -> void:
+	if my_seq != _seq or not is_instance_valid(self):
 		return
 	if _utter_idx >= _utterances.size():
 		_phase = Phase.DONE
 		return
 
-	_phase = Phase.UTTERANCE
-	_label.add_theme_color_override("default_color", COLOR_TEXT)
-	_icon.text = "🗣"
-	_row.modulate = Color.WHITE
-	_think_bg.hide()
-	_label.text = _utterances[_utter_idx]
+	if _label:
+		_label.text = _utterances[_utter_idx]
 	_utter_idx += 1
 	_needs_resize = true
 
-	# Schedule next utterance
 	if _utter_idx < _utterances.size():
 		await get_tree().create_timer(UTTERANCE_TIME).timeout
-		if is_instance_valid(self):
-			if _utter_idx < _utterances.size():
-				_show_next_utterance()
+		if my_seq == _seq and is_instance_valid(self):
+			_advance_utterance(my_seq)
 
 
 func _kill_tweens() -> void:
