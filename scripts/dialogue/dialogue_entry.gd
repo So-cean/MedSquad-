@@ -14,7 +14,7 @@ extends RefCounted
 var speaker: String = ""
 var think: String = ""
 var dialogue: String = ""
-var utterances: Array[String] = []
+var utterances: Array = []
 var target: String = ""
 var mood: String = "neutral"
 
@@ -24,7 +24,7 @@ func _init(
 	p_think: String = "",
 	p_dialogue: String = "",
 	p_target: String = "",
-	p_utterances: Array[String] = PackedStringArray()
+	p_utterances: Array = []
 ) -> void:
 	speaker = p_speaker
 	think = p_think
@@ -32,7 +32,7 @@ func _init(
 	target = p_target
 	utterances = p_utterances
 	if p_utterances.is_empty() and not p_dialogue.is_empty():
-		utterances = [p_dialogue] as Array[String]
+		utterances = [p_dialogue]
 
 
 ## Returns true when there is nothing to show in the bubble.
