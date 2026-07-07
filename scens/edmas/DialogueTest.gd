@@ -30,10 +30,15 @@ func _ready() -> void:
 		push_error("SimClient not available")
 		return
 
-	# Wait for backend to be ready
+	# Wait for backend to be ready (max 15s)
 	if not bb.is_ready:
 		print("[Test] Waiting for backend...")
-		await bb.backend_ready
+		var ready := false
+		bb.backend_ready.connect(func(): ready = true, CONNECT_ONE_SHOT)
+		await get_tree().create_timer(15.0).timeout
+		if not ready:
+			push_warning("[Test] Backend not ready — starting in offline mode")
+			return
 		print("[Test] Backend ready")
 
 	_init_sim()
