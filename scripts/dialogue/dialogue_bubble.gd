@@ -1,19 +1,18 @@
 class_name DialogueBubble
 extends Control
 
-## Speech-bubble UI that follows an NPC in screen-space.
+## Clean speech-bubble UI.
 ##
-## Single shared text area:
-##   Phase 1:  show think (blue text, 🤔 icon)  — typewriter reveal
-##   Phase 2:  clear → show dialogue (dark text, 🗣 icon)
-##
-## Layout:
-##   root Control
-##     └─ Panel
-##          └─ ScrollContainer (max height)
-##               └─ HBoxContainer (icon + shared RichTextLabel)
+## Lifecycle:
+##   1. show_entry() → build/reset UI
+##   2. THINK phase: think text types out (typewriter)
+##   3. THINK done → 0.5s pause → fade out think
+##   4. UTTERANCE phase: show utterances[] one by one, each 2.5s
+##   5. All utterances done → bubble stays visible until faded out by manager
 
-# ── Visual constants ──
+enum Phase { IDLE, THINK, UTTERANCE, DONE }
+
+# ── Constants ──
 const MAX_WIDTH := 220
 const MIN_WIDTH := 120
 const MAX_HEIGHT := 180.0
@@ -22,37 +21,35 @@ const PAD_V := 10
 const TAIL_W := 14.0
 const TAIL_H := 8.0
 const FONT_SIZE := 13
-const FONT_SIZE_ICON := 16
 const COLOR_BG := Color(1, 1, 1, 0.95)
 const COLOR_TEXT := Color(0.15, 0.15, 0.15)
-const COLOR_THINK := Color(0.25, 0.40, 0.80)   # blue  ← user request
+const COLOR_THINK := Color(0.25, 0.40, 0.80)
 const COLOR_THINK_BG := Color(0.92, 0.95, 0.98, 0.92)
-
 const TYPEWRITER_INTERVAL := 0.04
 const THINK_PAUSE := 0.5
-const CROSSFADE := 0.25
-const UTTERANCE_DISPLAY := 2.5  # seconds per utterance before auto-advance
+const FADE_DURATION := 0.25
+const UTTERANCE_TIME := 2.5
 
-# ── Child references ──
+# ── Node refs ──
 var _panel: Panel
 var _scroll: ScrollContainer
-var _content_row: HBoxContainer
+var _row: HBoxContainer           # icon + text
 var _icon: Label
-var _text_label: RichTextLabel
+var _label: RichTextLabel
 var _think_bg: ColorRect
 var _typewriter: Timer
 
 # ── State ──
+var _phase: int = Phase.IDLE
 var _think_text: String = ""
 var _think_pos: int = 0
+var _utterances: Array[String] = []
+var _utter_idx: int = 0
 var _random_phase: float = 0.0
 var _current_entry: DialogueEntry = null
 var _needs_resize := false
 var _is_fading := false
 var _fade_tween: Tween = null
-var _in_think_phase := true
-var _utterance_queue: Array[String] = []
-var _utterance_idx: int = 0
 
 
 func _init() -> void:
@@ -62,44 +59,11 @@ func _init() -> void:
 
 func _ready() -> void:
 	_build_ui()
-	_setup_font_with_chinese_fallback()
 	_typewriter = Timer.new()
 	_typewriter.one_shot = false
-	_typewriter.timeout.connect(_on_typewriter_tick)
+	_typewriter.timeout.connect(_on_tick)
 	add_child(_typewriter)
 	hide()
-
-
-func _setup_font_with_chinese_fallback() -> void:
-	var cn_font = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
-	if not cn_font:
-		return
-	# Get default RichTextLabel font → duplicate → add Chinese fallback → override
-	var base = _text_label.get_theme_font("normal_font") as FontFile
-	if base:
-		var merged = base.duplicate()
-		merged.fallbacks = [cn_font]
-		_text_label.add_theme_font_override("normal_font", merged)
-
-
-func _draw() -> void:
-	if not visible:
-		return
-	var cx := size.x * 0.5
-	var by := size.y - TAIL_H
-	var pts := PackedVector2Array([
-		Vector2(cx, by + TAIL_H),
-		Vector2(cx - TAIL_W * 0.5, by),
-		Vector2(cx + TAIL_W * 0.5, by),
-	])
-	var colors := PackedColorArray([COLOR_BG, COLOR_BG, COLOR_BG])
-	draw_primitive(pts, colors, pts)
-
-
-func _process(_delta: float) -> void:
-	if _needs_resize:
-		_needs_resize = false
-		_reflow()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -114,150 +78,131 @@ func fade_out() -> void:
 	if _is_fading or not visible:
 		return
 	_is_fading = true
+	_kill_tweens()
 	_fade_tween = create_tween()
-	_fade_tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.4)
-	_fade_tween.tween_callback(_on_fade_complete)
+	_fade_tween.tween_property(self, "modulate:a", 0.0, 0.4)
+	_fade_tween.tween_callback(func():
+		visible = false
+		modulate.a = 1.0
+		_is_fading = false
+	)
+	_phase = Phase.IDLE
 
 
-func _on_fade_complete() -> void:
-	visible = false
-	modulate = Color.WHITE
-	_is_fading = false
-	_fade_tween = null
-
-
-func cancel_fade() -> void:
-	if _fade_tween and _fade_tween.is_valid():
-		_fade_tween.kill()
-	_is_fading = false
-	_fade_tween = null
-	modulate = Color.WHITE
-
-
-## Display a dialogue entry.  Sequence: think typewriter → utterances queue.
 func show_entry(entry: DialogueEntry) -> void:
 	if _is_fading:
-		cancel_fade()
+		_kill_tweens()
+		_is_fading = false
+		modulate.a = 1.0
+
 	_current_entry = entry
 	if entry.is_empty():
 		hide()
 		return
 
+	# Reset state
 	_think_text = entry.think
-	_utterance_queue = entry.utterances.duplicate()
-	_utterance_idx = 0
-
-	# Reset
+	_utterances = entry.utterances.duplicate()
+	_utter_idx = 0
 	_think_pos = 0
-	_text_label.text = ""
-	_text_label.modulate = Color.WHITE
+
+	_label.text = ""
+	_label.modulate = Color.WHITE
+	_label.add_theme_color_override("default_color", COLOR_THINK)
+	_row.modulate = Color.WHITE
 	_think_bg.modulate = Color.WHITE
-	_content_row.modulate = Color.WHITE
-	_in_think_phase = true
+	_icon.text = "🤔"
 	visible = true
 	_needs_resize = true
 
 	if _think_text.is_empty():
-		_no_think_show_dialogue()
+		# No think → jump to utterances
+		_icon.text = "🗣"
+		_label.add_theme_color_override("default_color", COLOR_TEXT)
+		_think_bg.hide()
+		_show_next_utterance()
 	else:
-		_icon.text = "🤔"
-		_icon.add_theme_font_size_override("font_size", FONT_SIZE)
-		_text_label.add_theme_color_override("default_color", COLOR_THINK)
-		_text_label.text = ""
 		_think_bg.show()
 		_typewriter.start(TYPEWRITER_INTERVAL)
 
 
-func follow_screen_position(screen_center_x: float, screen_base_y: float) -> void:
-	var float_offset: float = sin(Time.get_ticks_msec() * 0.0025 + _random_phase) * 3.0
-	position.x = screen_center_x - size.x * 0.5
-	position.y = screen_base_y - size.y - 16.0 + float_offset
+func follow_screen_position(cx: float, by: float) -> void:
+	var offset: float = sin(Time.get_ticks_msec() * 0.0025 + _random_phase) * 3.0
+	position.x = cx - size.x * 0.5
+	position.y = by - size.y - 16.0 + offset
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Internal
+#  Internal UI build
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
-	# ── Panel ──
 	_panel = Panel.new()
 	_panel.mouse_filter = MOUSE_FILTER_IGNORE
-	_panel.name = "BubblePanel"
 	add_child(_panel)
 
-	var s := StyleBoxFlat.new()
-	s.bg_color = COLOR_BG
-	s.corner_radius_top_left = 8
-	s.corner_radius_top_right = 8
-	s.corner_radius_bottom_left = 8
-	s.corner_radius_bottom_right = 8
-	s.shadow_size = 6
-	s.shadow_color = Color(0, 0, 0, 0.18)
-	_panel.add_theme_stylebox_override("panel", s)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_BG
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.shadow_size = 6
+	style.shadow_color = Color(0, 0, 0, 0.18)
+	_panel.add_theme_stylebox_override("panel", style)
 
-	# ── Think background (blue tint behind content during think phase) ──
 	_think_bg = ColorRect.new()
 	_think_bg.color = COLOR_THINK_BG
 	_think_bg.mouse_filter = MOUSE_FILTER_IGNORE
-	_think_bg.name = "ThinkBg"
 	_panel.add_child(_think_bg)
 
-	# ── ScrollContainer (max height wrapper) ──
 	_scroll = ScrollContainer.new()
 	_scroll.mouse_filter = MOUSE_FILTER_IGNORE
-	_scroll.name = "Scroll"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_panel.add_child(_scroll)
 
-	# ── Single shared content row: icon + text ──
-	_content_row = HBoxContainer.new()
-	_content_row.mouse_filter = MOUSE_FILTER_IGNORE
-	_content_row.name = "ContentRow"
-	_content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_content_row)
+	_row = HBoxContainer.new()
+	_row.mouse_filter = MOUSE_FILTER_IGNORE
+	_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_row)
 
 	_icon = Label.new()
 	_icon.text = "🤔"
-	_icon.add_theme_font_size_override("font_size", FONT_SIZE_ICON)
+	_icon.add_theme_font_size_override("font_size", FONT_SIZE)
 	_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_icon.custom_minimum_size = Vector2(22, 0)
-	_content_row.add_child(_icon)
+	_row.add_child(_icon)
 
-	_text_label = RichTextLabel.new()
-	_text_label.name = "TextLabel"
-	_text_label.mouse_filter = MOUSE_FILTER_IGNORE
-	_text_label.fit_content = true
-	_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text_label.scroll_following = true
-	_text_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
-	_text_label.add_theme_color_override("default_color", COLOR_THINK)
-	_text_label.custom_minimum_size = Vector2(MAX_WIDTH - 48, 0)
-	_content_row.add_child(_text_label)
+	_label = RichTextLabel.new()
+	_label.mouse_filter = MOUSE_FILTER_IGNORE
+	_label.fit_content = true
+	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label.scroll_following = true
+	_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
+	_label.add_theme_color_override("default_color", COLOR_THINK)
+	_label.custom_minimum_size = Vector2(MAX_WIDTH - 48, 0)
+	_row.add_child(_label)
 
 
 func _reflow() -> void:
-	var content_min := _content_row.get_combined_minimum_size()
-	var bw: float = clamp(content_min.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
-	var content_h := content_min.y + PAD_V
+	var min_size := _row.get_combined_minimum_size()
+	var bw: float = clamp(min_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
+	var content_h := min_size.y + PAD_V
 	var bh: float = minf(content_h, MAX_HEIGHT) + TAIL_H
 
 	size = Vector2(bw, bh)
-
 	var panel_h := bh - TAIL_H
 	_panel.position = Vector2.ZERO
 	_panel.size = Vector2(bw, panel_h)
-
 	_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
 	_scroll.size = Vector2(bw - PAD_H, panel_h - PAD_V)
+	_row.size = Vector2(bw - PAD_H - 4, min_size.y)
 
-	_content_row.size = Vector2(bw - PAD_H - 4, content_min.y)
-
-	# Think-bg fills panel behind scroll
 	_think_bg.position = Vector2.ZERO
-	_think_bg.size = Vector2(bw, panel_h) if _in_think_phase else Vector2.ZERO
+	_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
 
-	# Auto-scroll to bottom
+	# Auto-scroll
 	var sb := _scroll.get_v_scroll_bar()
 	if sb:
 		_scroll.scroll_vertical = int(sb.max_value)
@@ -265,14 +210,36 @@ func _reflow() -> void:
 	queue_redraw()
 
 
-func _on_typewriter_tick() -> void:
+func _draw() -> void:
+	if not visible:
+		return
+	var cx := size.x * 0.5
+	var by := size.y - TAIL_H
+	var pts := PackedVector2Array([
+		Vector2(cx, by + TAIL_H),
+		Vector2(cx - TAIL_W * 0.5, by),
+		Vector2(cx + TAIL_W * 0.5, by),
+	])
+	draw_primitive(pts, [], pts)
+
+
+func _process(_delta: float) -> void:
+	if _needs_resize:
+		_needs_resize = false
+		_reflow()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Phase sequencing
+# ═══════════════════════════════════════════════════════════════════════
+
+func _on_tick() -> void:
 	_think_pos += 1
 	if _think_pos > _think_text.length():
 		_typewriter.stop()
 		_start_think_fadeout()
 		return
-
-	_text_label.text = _think_text.left(_think_pos)
+	_label.text = _think_text.left(_think_pos)
 	_needs_resize = true
 
 
@@ -280,49 +247,38 @@ func _start_think_fadeout() -> void:
 	await get_tree().create_timer(THINK_PAUSE).timeout
 	if not is_instance_valid(self):
 		return
-
-	_in_think_phase = false
+	_phase = Phase.UTTERANCE
 	var t := create_tween()
-	t.tween_property(_think_bg, "modulate", Color(1, 1, 1, 0), CROSSFADE)
-	t.parallel().tween_property(_content_row, "modulate", Color(1, 1, 1, 0), CROSSFADE)
-	t.tween_callback(_show_dialogue)
+	t.tween_property(_row, "modulate:a", 0.0, FADE_DURATION)
+	t.parallel().tween_property(_think_bg, "modulate:a", 0.0, FADE_DURATION)
+	t.tween_callback(_show_next_utterance)
 
 
-func _no_think_show_dialogue() -> void:
-	_in_think_phase = false
-	_icon.text = "🗣"
-	_icon.add_theme_font_size_override("font_size", FONT_SIZE)
-	_text_label.add_theme_color_override("default_color", COLOR_TEXT)
-	_think_bg.hide()
-	_play_utterance_queue()
-
-
-func _show_dialogue() -> void:
+func _show_next_utterance() -> void:
 	if not is_instance_valid(self):
 		return
-	_in_think_phase = false
+	if _utter_idx >= _utterances.size():
+		_phase = Phase.DONE
+		return
+
+	_phase = Phase.UTTERANCE
+	_label.add_theme_color_override("default_color", COLOR_TEXT)
 	_icon.text = "🗣"
-	_icon.add_theme_font_size_override("font_size", FONT_SIZE)
-	_text_label.add_theme_color_override("default_color", COLOR_TEXT)
+	_row.modulate = Color.WHITE
 	_think_bg.hide()
-	_play_utterance_queue()
-
-
-func _play_utterance_queue() -> void:
-	if not is_instance_valid(self):
-		return
-	if _utterance_idx >= _utterance_queue.size():
-		# Queue done, keep showing last text
-		return
-
-	_text_label.text = _utterance_queue[_utterance_idx]
-	_utterance_idx += 1
-	_content_row.modulate = Color.WHITE
+	_label.text = _utterances[_utter_idx]
+	_utter_idx += 1
 	_needs_resize = true
 
 	# Schedule next utterance
-	if _utterance_idx < _utterance_queue.size():
-		await get_tree().create_timer(UTTERANCE_DISPLAY).timeout
-		if not is_instance_valid(self):
-			return
-		_play_utterance_queue()
+	if _utter_idx < _utterances.size():
+		await get_tree().create_timer(UTTERANCE_TIME).timeout
+		if is_instance_valid(self):
+			if _utter_idx < _utterances.size():
+				_show_next_utterance()
+
+
+func _kill_tweens() -> void:
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+	_fade_tween = null
