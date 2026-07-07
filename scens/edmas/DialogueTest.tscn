@@ -29,8 +29,8 @@ script = ExtResource("2")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Nurse/InteractionZone"]
 shape = SubResource("CircleShape2D_interact")
 
-[node name="NPC_Patient" type="CharacterBody2D" parent="."]
-position = Vector2(600, 300)
+[node name="NPC_Patient1" type="CharacterBody2D" parent="."]
+position = Vector2(600, 280)
 scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
@@ -38,8 +38,23 @@ script = ExtResource("1")
 npc_display_name = "患者"
 npc_frames_dir = "res://assets/patient_blue_frames/"
 npc_walk_flip = Array[String](["up", "down"])
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Patient"]
-[node name="InteractionZone" type="Area2D" parent="NPC_Patient"]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Patient1"]
+[node name="InteractionZone" type="Area2D" parent="NPC_Patient1"]
 script = ExtResource("2")
-[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient/InteractionZone"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient1/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_Patient2" type="CharacterBody2D" parent="."]
+position = Vector2(600, 360)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1")
+npc_display_name = "患者"
+npc_frames_dir = "res://assets/patient_green_frames/"
+npc_walk_flip = Array[String](["up", "down"])
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Patient2"]
+[node name="InteractionZone" type="Area2D" parent="NPC_Patient2"]
+script = ExtResource("2")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient2/InteractionZone"]
 shape = SubResource("CircleShape2D_interact")
