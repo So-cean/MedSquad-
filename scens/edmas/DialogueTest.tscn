@@ -12,7 +12,8 @@ script = ExtResource("3")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true
-position_smoothing_enabled = false
+position = Vector2(500, 300)
+zoom = Vector2(1.5, 1.5)
 
 [node name="NPC_Nurse" type="CharacterBody2D" parent="."]
 position = Vector2(400, 300)

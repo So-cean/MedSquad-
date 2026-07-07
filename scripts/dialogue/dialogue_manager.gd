@@ -16,16 +16,12 @@ var _npcs: Array[BaseNpc] = []
 var _slots: Dictionary = {}
 
 
+var _bubbles_ready := false
+
 func _ready() -> void:
 	_layer = CanvasLayer.new()
 	_layer.layer = 100
 	add_child(_layer)
-
-	for i in POOL_SIZE:
-		var b := DialogueBubble.new()
-		b.name = "DialogueBubble_%d" % i
-		b.visible = false
-		_bubble_pool.append(b)
 
 	# Spawn ConversationManager as child
 	var cm_script = load("res://scripts/dialogue/conversation_manager.gd")
@@ -67,9 +63,19 @@ func unregister(npc: BaseNpc) -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _process(_delta: float) -> void:
+	# Initialize bubble pool on first frame (after all _ready() calls have run)
+	if not _bubbles_ready:
+		_bubbles_ready = true
+		for i in POOL_SIZE:
+			var b := DialogueBubble.new()
+			b.name = "DialogueBubble_%d" % i
+			b.visible = false
+			_layer.add_child(b)
+			_bubble_pool.append(b)
+		return
+
 	var camera := _get_camera()
 	if not camera:
-		# No camera yet — bubbles can't be positioned
 		return
 
 	# Assign / release bubbles based on NPC dialogue state
