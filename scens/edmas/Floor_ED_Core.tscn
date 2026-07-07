@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map1_norm.png" id="1"]
+[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/edmas/npc_interaction_zone.gd" id="3"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_interact"]
+radius = 50.0
+
+[node name="Floor_ED_Core" type="Node2D"]
+
+[node name="MapSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1")
+centered = false
+
+[node name="Collision" type="StaticBody2D" parent="."]
+[node name="WallShape" type="CollisionPolygon2D" parent="Collision"]
+polygon = PackedVector2Array(141, 363, 141, 453, 201, 458, 203, 557, 155, 579, 138, 543, 140, 651, 189, 627, 209, 660, 185, 720, 139, 681, 144, 780, 614, 767, 734, 789, 739, 732, 927, 733, 964, 797, 1027, 767, 1571, 777, 1570, 365, 1245, 361, 1253, 270, 1581, 270, 1595, 204, 1529, 203, 1532, 138, 1023, 138, 1023, 208, 930, 172, 935, 208, 751, 209, 756, 172, 709, 172, 698, 363, 549, 361, 558, 270, 671, 268, 670, 138, 631, 220, 556, 206, 555, 138, 518, 198, 398, 138, 388, 271, 429, 273, 434, 362)
+build_mode = 1
+
+[node name="Marker_ED_Entrance" type="Marker2D" parent="."]
+position = Vector2(180, 210)
+[node name="Marker_Triage" type="Marker2D" parent="."]
+position = Vector2(310, 210)
+[node name="Marker_Waiting" type="Marker2D" parent="."]
+position = Vector2(430, 210)
+[node name="Marker_Doctor" type="Marker2D" parent="."]
+position = Vector2(560, 210)
+[node name="Marker_ED_Resus" type="Marker2D" parent="."]
+position = Vector2(690, 210)
+[node name="Marker_Elevator_ED" type="Marker2D" parent="."]
+position = Vector2(120, 120)
+
+[node name="NPC_TriageNurse" type="CharacterBody2D" parent="."]
+position = Vector2(720, 450)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "分诊护士"
+npc_frames_dir = "res://assets/nurse_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_TriageNurse"]
+[node name="InteractionZone" type="Area2D" parent="NPC_TriageNurse"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_TriageNurse/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_EmergencyNurse" type="CharacterBody2D" parent="."]
+position = Vector2(880, 450)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "急救护士"
+npc_frames_dir = "res://assets/nurse_blue_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_EmergencyNurse"]
+[node name="InteractionZone" type="Area2D" parent="NPC_EmergencyNurse"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_EmergencyNurse/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_Patient1" type="CharacterBody2D" parent="."]
+position = Vector2(880, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "患者"
+npc_frames_dir = "res://assets/patient_blue_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Patient1"]
+[node name="InteractionZone" type="Area2D" parent="NPC_Patient1"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient1/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_Patient2" type="CharacterBody2D" parent="."]
+position = Vector2(960, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "患者"
+npc_frames_dir = "res://assets/patient_green_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Patient2"]
+[node name="InteractionZone" type="Area2D" parent="NPC_Patient2"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient2/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")

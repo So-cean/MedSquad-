@@ -2,17 +2,21 @@ extends Control
 
 const _DemoProvider = preload("res://scripts/edmas/mock/mock_demo_provider.gd")
 const _AgentProfiles = preload("res://scripts/edmas/mock/mock_agent_profiles.gd")
-const MAP_SIZE := Vector2(1672.0, 941.0)
+const FLOOR_SCENES := {
+	"MAP_ED_CORE": "res://scens/edmas/Floor_ED_Core.tscn",
+	"MAP_DIAGNOSTICS": "res://scens/edmas/Floor_Diagnostics.tscn",
+	"MAP_DOWNSTREAM": "res://scens/edmas/Floor_Downstream.tscn",
+}
 
 @onready var api_client: Node = $APIClient
 @onready var map_root: Node2D = $MapRoot
-@onready var hospital_map_manager: Node = $MapRoot/HospitalMapManager
-@onready var patient_manager: Node = $MapRoot/PatientManager
+@onready var floor_container: Node2D = $MapRoot/FloorContainer
 @onready var fade_overlay: ColorRect = $CanvasLayer/FadeOverlay
 @onready var elevator_zone: Area2D = $MapRoot/ElevatorZone
 @onready var elevator_hint: Label = $CanvasLayer/UI/ElevatorHint
 @onready var npc_hint: Label = $CanvasLayer/UI/NPCInteractionHint
-var _nearby_npc = null  # The NPC the player is near
+var _nearby_npc = null
+var _current_floor: String = ""
 @onready var mock_mode_toggle: CheckBox = $CanvasLayer/UI/VBox/MockModeToggle
 @onready var current_location_label: Label = $CanvasLayer/UI/VBox/CurrentLocationLabel
 @onready var current_state_label: Label = $CanvasLayer/UI/VBox/CurrentStateLabel
@@ -43,6 +47,7 @@ func _ready() -> void:
 	print("[EDMAS] Main_EDMAS scene loaded")
 	backend_status_label.text = "ED-MAS Main Scene Loaded"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_load_floor("MAP_ED_CORE")
 	_fit_map_to_viewport()
 	var vp: Viewport = get_viewport()
 	if vp != null and vp.has_signal("size_changed"):
@@ -70,8 +75,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# Elevator interaction
 	if elevator_zone and elevator_zone.is_player_inside():
-		var cur = hospital_map_manager.get_current_map_id()
-		var idx = MAP_ORDER.find(cur)
+		var idx = MAP_ORDER.find(_current_floor)
 		elevator_hint.text = ""
 		if idx > 0:
 			elevator_hint.text += "按 Q 下楼  "
@@ -127,26 +131,30 @@ func _talk_to_npc(npc) -> void:
 
 
 func _elevator_go(dir: int) -> void:
-	var cur = hospital_map_manager.get_current_map_id()
-	var idx = MAP_ORDER.find(cur)
+	var idx = MAP_ORDER.find(_current_floor)
 	var new_idx = idx + dir
 	if new_idx < 0 or new_idx >= MAP_ORDER.size():
 		return
-	var target_location: String = ""
-	match MAP_ORDER[new_idx]:
-		"MAP_ED_CORE":
-			target_location = "ED_ENTRANCE"
-		"MAP_DIAGNOSTICS":
-			target_location = "DIAGNOSTIC_WAITING"
-		"MAP_DOWNSTREAM":
-			target_location = "DISPOSITION"
-	if target_location != "":
-		_switch_map_with_fade(target_location)
+	_load_floor(MAP_ORDER[new_idx])
 
+func _load_floor(map_id: String) -> void:
+	if map_id == _current_floor:
+		return
+	# Clear current floor immediately
+	for child in floor_container.get_children():
+		child.free()
+	# Load new floor
+	var path = FLOOR_SCENES.get(map_id, "")
+	if path == "":
+		return
+	var scn = load(path)
+	if not scn:
+		return
+	var instance = scn.instantiate()
+	floor_container.add_child(instance)
+	_current_floor = map_id
+	print("[EDMAS] Loaded floor: ", map_id)
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_fit_map_to_viewport()
 
 func _fit_map_to_viewport() -> void:
 	if map_root == null:
@@ -154,12 +162,19 @@ func _fit_map_to_viewport() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
-	var scale_factor: float = min(viewport_size.x / MAP_SIZE.x, viewport_size.y / MAP_SIZE.y)
+	var scale_factor: float = min(viewport_size.x / 1672.0, viewport_size.y / 941.0)
 	map_root.scale = Vector2(scale_factor, scale_factor)
 	map_root.position = Vector2(
-		(viewport_size.x - MAP_SIZE.x * scale_factor) / 2.0,
-		(viewport_size.y - MAP_SIZE.y * scale_factor) / 2.0
+		(viewport_size.x - 1672.0 * scale_factor) / 2.0,
+		(viewport_size.y - 941.0 * scale_factor) / 2.0
 	)
+
+
+func _get_map_id_for_location(location_name: String) -> String:
+	var config = load("res://scripts/edmas/config.gd")
+	if config and config.LOCATION_TO_MAP.has(location_name):
+		return config.LOCATION_TO_MAP[location_name]
+	return "MAP_ED_CORE"
 
 func _on_mock_mode_toggled(button_pressed: bool) -> void:
 	_use_mock_mode = button_pressed
@@ -228,30 +243,21 @@ func _update_labels(data: Dictionary) -> void:
 
 func _apply_snapshot(snapshot: Dictionary) -> void:
 	_update_labels(snapshot)
-	patient_manager.apply_snapshot(snapshot)
 	var patient: Dictionary = _extract_patient(snapshot)
 	_set_active_patient(patient)
 	_switch_map_with_fade(str(patient.get("location", "ED_ENTRANCE")))
 
 
 func _switch_map_with_fade(location_name: String) -> void:
-	if hospital_map_manager == null or not hospital_map_manager.has_method("show_map_for_location"):
-		return
-	var old_map: String = ""
-	if hospital_map_manager.has_method("get_current_map_id"):
-		old_map = hospital_map_manager.get_current_map_id()
-	var new_map: String = hospital_map_manager.get_map_id_for_location(location_name)
-	if old_map == new_map:
-		# Same map, no fade needed
-		hospital_map_manager.show_map_for_location(location_name)
+	var new_map: String = _get_map_id_for_location(location_name)
+	if new_map == _current_floor:
 		return
 
-	# Cross-map: fade out → switch → fade in
 	fade_overlay.modulate = Color(0, 0, 0, 0)
 	var t := create_tween()
 	t.tween_property(fade_overlay, "modulate", Color(0, 0, 0, 1), 0.2)
 	t.tween_callback(func():
-		hospital_map_manager.show_map_for_location(location_name)
+		_load_floor(new_map)
 	)
 	t.tween_property(fade_overlay, "modulate", Color(0, 0, 0, 0), 0.2)
 

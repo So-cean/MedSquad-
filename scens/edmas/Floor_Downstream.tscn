@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map3_norm.png" id="1"]
+[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/edmas/npc_interaction_zone.gd" id="3"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_interact"]
+radius = 50.0
+
+[node name="Floor_Downstream" type="Node2D"]
+
+[node name="MapSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1")
+centered = false
+
+[node name="Collision" type="StaticBody2D" parent="."]
+[node name="WallShape" type="CollisionPolygon2D" parent="Collision"]
+polygon = PackedVector2Array(616, 417, 643, 529, 668, 527, 673, 454, 829, 418, 830, 453, 979, 447, 986, 600, 1219, 600, 1229, 670, 1271, 673, 1270, 748, 1158, 783, 1054, 760, 1047, 671, 1076, 659, 1012, 659, 1014, 779, 1061, 793, 1054, 847, 1338, 847, 1316, 600, 1597, 600, 1596, 417, 958, 416, 964, 217, 719, 217, 716, 414)
+build_mode = 1
+
+[node name="Marker_Disposition" type="Marker2D" parent="."]
+position = Vector2(220, 260)
+[node name="Marker_ICU" type="Marker2D" parent="."]
+position = Vector2(380, 260)
+[node name="Marker_Ward" type="Marker2D" parent="."]
+position = Vector2(540, 260)
+[node name="Marker_ED_Boarding" type="Marker2D" parent="."]
+position = Vector2(700, 260)
+[node name="Marker_Discharge" type="Marker2D" parent="."]
+position = Vector2(860, 260)
+[node name="Marker_Elevator_Downstream" type="Marker2D" parent="."]
+position = Vector2(120, 200)
+
+[node name="NPC_WardNurse" type="CharacterBody2D" parent="."]
+position = Vector2(800, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "住院护士"
+npc_frames_dir = "res://assets/nurse_green_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_WardNurse"]
+[node name="InteractionZone" type="Area2D" parent="NPC_WardNurse"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_WardNurse/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")

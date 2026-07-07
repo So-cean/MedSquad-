@@ -1,13 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://edmas_main_scene"]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/edmas/main_edmas.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/edmas/api_client.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/edmas/patient_manager.gd" id="3"]
-[ext_resource type="PackedScene" path="res://scens/edmas/HospitalMap.tscn" id="4"]
-[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="5"]
-[ext_resource type="PackedScene" path="res://scens/player.tscn" id="6"]
-[ext_resource type="Script" path="res://scripts/edmas/elevator_zone.gd" id="7"]
-[ext_resource type="Script" path="res://scripts/edmas/npc_interaction_zone.gd" id="8"]
+[ext_resource type="PackedScene" path="res://scens/player.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/edmas/elevator_zone.gd" id="4"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_elevator"]
 radius = 50.0
@@ -20,11 +16,23 @@ script = ExtResource("2")
 
 [node name="MapRoot" type="Node2D" parent="."]
 
-[node name="HospitalMapManager" parent="MapRoot" instance=ExtResource("4")]
+[node name="FloorContainer" type="Node2D" parent="MapRoot"]
 
-[node name="PatientManager" type="Node" parent="MapRoot"]
-script = ExtResource("3")
-hospital_map_path = NodePath("../HospitalMapManager")
+[node name="Player" parent="MapRoot" instance=ExtResource("3")]
+position = Vector2(600, 480)
+collision_layer = 1
+collision_mask = 1
+scale = Vector2(2.5, 2.5)
+
+[node name="Camera2D" parent="MapRoot/Player"]
+enabled = false
+
+[node name="ElevatorZone" type="Area2D" parent="MapRoot"]
+position = Vector2(500, 480)
+script = ExtResource("4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/ElevatorZone"]
+shape = SubResource("CircleShape2D_elevator")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 10
@@ -131,140 +139,3 @@ text = "Talk"
 
 [node name="NextDialogueButton" type="Button" parent="CanvasLayer/UI/DialoguePanel/VBox/HBox"]
 text = "Next"
-
-[node name="Player" parent="MapRoot" instance=ExtResource("6")]
-position = Vector2(600, 480)
-collision_layer = 1
-collision_mask = 1
-scale = Vector2(2.5, 2.5)
-
-[node name="Camera2D" parent="MapRoot/Player"]
-enabled = false
-
-[node name="ElevatorZone" type="Area2D" parent="MapRoot"]
-position = Vector2(500, 480)
-script = ExtResource("7")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/ElevatorZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_TriageNurse" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(720, 450)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "分诊护士"
-npc_frames_dir = "res://assets/nurse_frames/"
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_TriageNurse"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_TriageNurse"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_TriageNurse/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_Surgeon" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(800, 450)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "手术医生"
-npc_frames_dir = "res://assets/scrubs_green_frames/"
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Surgeon"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_Surgeon"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_Surgeon/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_EmergencyNurse" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(880, 450)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "急救护士"
-npc_frames_dir = "res://assets/nurse_blue_frames/"
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_EmergencyNurse"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_EmergencyNurse"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_EmergencyNurse/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_LabNurse" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(720, 550)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "检验科护士"
-npc_frames_dir = "res://assets/scrubs_blue_frames/"
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_LabNurse"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_LabNurse"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_LabNurse/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_WardNurse" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(800, 550)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "住院护士"
-npc_frames_dir = "res://assets/nurse_green_frames/"
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_WardNurse"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_WardNurse"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_WardNurse/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_Patient1" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(880, 550)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "患者"
-npc_frames_dir = "res://assets/patient_blue_frames/"
-npc_walk_flip = Array[String](["up", "down"])
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Patient1"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_Patient1"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_Patient1/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")
-
-[node name="NPC_Patient2" type="CharacterBody2D" parent="MapRoot"]
-position = Vector2(960, 550)
-scale = Vector2(2.5, 2.5)
-collision_layer = 0
-collision_mask = 0
-script = ExtResource("5")
-npc_display_name = "患者"
-npc_frames_dir = "res://assets/patient_green_frames/"
-npc_walk_flip = Array[String](["up", "down"])
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="MapRoot/NPC_Patient2"]
-
-[node name="InteractionZone" type="Area2D" parent="MapRoot/NPC_Patient2"]
-script = ExtResource("8")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/NPC_Patient2/InteractionZone"]
-shape = SubResource("CircleShape2D_elevator")

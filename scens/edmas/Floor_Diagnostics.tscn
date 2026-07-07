@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map2_norm.png" id="1"]
+[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/edmas/npc_interaction_zone.gd" id="3"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_interact"]
+radius = 50.0
+
+[node name="Floor_Diagnostics" type="Node2D"]
+
+[node name="MapSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1")
+centered = false
+
+[node name="Collision" type="StaticBody2D" parent="."]
+[node name="WallShape" type="CollisionPolygon2D" parent="Collision"]
+polygon = PackedVector2Array(128, 352, 128, 717, 611, 688, 648, 718, 858, 717, 877, 650, 957, 658, 927, 723, 1398, 722, 1424, 650, 1558, 648, 1559, 346, 1066, 333, 982, 267, 1026, 240, 1021, 138, 892, 138, 890, 256, 803, 218, 797, 248, 689, 246, 685, 128, 644, 224, 637, 229, 643, 371, 752, 368, 1026, 357, 1054, 276, 1184, 265, 1276, 128, 1276, 357, 1256, 386, 1142, 389, 1151, 491, 1022, 486, 1015, 566, 755, 573, 752, 640, 892, 648, 884, 138, 876, 275, 753, 271, 753, 128, 708, 213, 694, 198, 694, 148, 561, 139, 554, 237, 472, 231, 469, 139, 434, 201, 429, 209, 436, 369)
+build_mode = 1
+
+[node name="Marker_Lab" type="Marker2D" parent="."]
+position = Vector2(220, 240)
+[node name="Marker_Imaging" type="Marker2D" parent="."]
+position = Vector2(380, 240)
+[node name="Marker_Diagnostic_Waiting" type="Marker2D" parent="."]
+position = Vector2(540, 240)
+[node name="Marker_Result_Review" type="Marker2D" parent="."]
+position = Vector2(700, 240)
+[node name="Marker_Elevator_Diagnostics" type="Marker2D" parent="."]
+position = Vector2(120, 160)
+
+[node name="NPC_Surgeon" type="CharacterBody2D" parent="."]
+position = Vector2(800, 450)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "手术医生"
+npc_frames_dir = "res://assets/scrubs_green_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_Surgeon"]
+[node name="InteractionZone" type="Area2D" parent="NPC_Surgeon"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Surgeon/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_LabNurse" type="CharacterBody2D" parent="."]
+position = Vector2(720, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "检验科护士"
+npc_frames_dir = "res://assets/scrubs_blue_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_LabNurse"]
+[node name="InteractionZone" type="Area2D" parent="NPC_LabNurse"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_LabNurse/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
