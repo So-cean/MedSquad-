@@ -100,14 +100,14 @@ text = "Next"
 position = Vector2(180, 210)
 collision_layer = 0
 collision_mask = 0
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 
 [node name="Camera2D" parent="MapRoot/Player"]
 enabled = false
 
 [node name="NPC_TriageNurse" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(310, 200)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -118,7 +118,7 @@ npc_frames_dir = "res://assets/nurse_frames/"
 
 [node name="NPC_Surgeon" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(560, 200)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -129,7 +129,7 @@ npc_frames_dir = "res://assets/scrubs_green_frames/"
 
 [node name="NPC_EmergencyNurse" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(690, 200)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -140,7 +140,7 @@ npc_frames_dir = "res://assets/nurse_blue_frames/"
 
 [node name="NPC_LabNurse" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(220, 230)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -151,7 +151,7 @@ npc_frames_dir = "res://assets/scrubs_blue_frames/"
 
 [node name="NPC_WardNurse" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(540, 250)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -162,7 +162,7 @@ npc_frames_dir = "res://assets/nurse_green_frames/"
 
 [node name="NPC_Patient1" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(430, 200)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
@@ -174,7 +174,7 @@ npc_walk_flip = Array[String](["up", "down"])
 
 [node name="NPC_Patient2" type="CharacterBody2D" parent="MapRoot"]
 position = Vector2(430, 230)
-scale = Vector2(4, 4)
+scale = Vector2(2.5, 2.5)
 collision_layer = 0
 collision_mask = 0
 script = ExtResource("5")
