@@ -28,10 +28,18 @@ func show_map_for_location(location_name: String) -> void:
 	map_ed_core.visible = map_id == "MAP_ED_CORE"
 	map_diagnostics.visible = map_id == "MAP_DIAGNOSTICS"
 	map_downstream.visible = map_id == "MAP_DOWNSTREAM"
-	if col_ed_core: col_ed_core.visible = map_id == "MAP_ED_CORE"
-	if col_diagnostics: col_diagnostics.visible = map_id == "MAP_DIAGNOSTICS"
-	if col_downstream: col_downstream.visible = map_id == "MAP_DOWNSTREAM"
+	_set_collision_enabled(col_ed_core, map_id == "MAP_ED_CORE")
+	_set_collision_enabled(col_diagnostics, map_id == "MAP_DIAGNOSTICS")
+	_set_collision_enabled(col_downstream, map_id == "MAP_DOWNSTREAM")
 	_current_map_id = map_id
+
+
+func _set_collision_enabled(parent: Node, enabled: bool) -> void:
+	if not parent:
+		return
+	for child in parent.get_children():
+		if child is CollisionPolygon2D:
+			child.disabled = not enabled
 
 func get_map_id_for_location(location_name: String) -> String:
 	var map_value: Variant = MAP_BY_LOCATION.get(location_name, "MAP_ED_CORE")
