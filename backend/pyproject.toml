@@ -1,0 +1,12 @@
+[project]
+name = "edmas-backend"
+version = "0.1.0"
+description = "Backend pipeline for EDMAS simulation planning and Godot timelines."
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=1.10",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

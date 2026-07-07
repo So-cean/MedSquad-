@@ -1,0 +1,121 @@
+{
+  "title": "急诊头痛分诊演示",
+  "locale": "zh-CN",
+  "scene": {
+    "map_id": "room1",
+    "start_time": "08:00",
+    "locations": [
+      {"id": "triage_desk", "name": "分诊台", "position": {"x": 550, "y": 300}},
+      {"id": "ct_room", "name": "CT室", "position": {"x": 290, "y": 343}},
+      {"id": "doctor_station", "name": "医生工作站", "position": {"x": 650, "y": 400}}
+    ]
+  },
+  "actors": [
+    {
+      "id": "nurse_001",
+      "display_name": "分诊护士",
+      "type": "nurse",
+      "profession": "triage_nurse",
+      "sprite": "nurse_white",
+      "location_id": "triage_desk",
+      "priority_default": 1,
+      "personality": "严谨、高效、有耐心",
+      "knowledge": [
+        {"condition": "头痛", "action": "建议CT检查", "dept": "放射科"}
+      ],
+      "tools": ["triage_patient", "order_exam"],
+      "memory": []
+    },
+    {
+      "id": "doctor_001",
+      "display_name": "王医生",
+      "type": "doctor",
+      "profession": "emergency_doctor",
+      "sprite": "scrubs_green",
+      "location_id": "doctor_station",
+      "priority_default": 3,
+      "personality": "果断、专注、决策快",
+      "knowledge": [
+        {"condition": "颅内出血待排", "action": "复核CT并评估风险", "dept": "急诊"}
+      ],
+      "tools": ["review_exam", "give_instruction"],
+      "memory": []
+    },
+    {
+      "id": "patient_actor_001",
+      "display_name": "李四",
+      "type": "patient",
+      "profession": "patient",
+      "sprite": "patient_blue",
+      "location_id": "triage_desk",
+      "priority_default": 0,
+      "personality": "焦虑但配合",
+      "knowledge": [],
+      "tools": [],
+      "memory": []
+    }
+  ],
+  "patients": [
+    {
+      "id": "patient_001",
+      "actor_id": "patient_actor_001",
+      "name": "李四",
+      "age": 45,
+      "sex": "male",
+      "chief_complaint": "头痛2小时",
+      "symptoms": ["恶心"],
+      "vitals": {
+        "temperature": 37.2,
+        "heart_rate": 82,
+        "blood_pressure": "128/82",
+        "spo2": 98
+      },
+      "allergies": [],
+      "medical_history": ["高血压"],
+      "disease_ids": ["headache_case_001"],
+      "risk_level": 2
+    }
+  ],
+  "diseases": [
+    {
+      "id": "headache_case_001",
+      "name": "待查头痛",
+      "severity": "medium",
+      "possible_diagnoses": ["偏头痛", "颅内出血待排"],
+      "recommended_checks": ["CT"],
+      "expected_findings": [
+        {"test": "CT", "result": "未见明显出血"}
+      ],
+      "care_pathway": ["分诊", "CT检查", "医生复核", "用药指导"]
+    }
+  ],
+  "devices": [
+    {
+      "id": "ct_001",
+      "name": "CT扫描仪",
+      "type": "ct_scanner",
+      "location_id": "ct_room",
+      "status": "idle",
+      "capabilities": ["CT", "scan"],
+      "operation_duration": 5.0,
+      "outputs": [
+        {"name": "CT报告", "format": "text"}
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj_001",
+      "type": "triage",
+      "description": "完成头痛病人的分诊和CT检查建议",
+      "success_conditions": [
+        "patient_received_triage",
+        "ct_exam_ordered",
+        "patient_informed"
+      ]
+    }
+  ],
+  "constraints": {
+    "deterministic": true
+  }
+}
