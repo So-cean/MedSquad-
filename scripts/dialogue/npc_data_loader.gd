@@ -17,7 +17,7 @@ static func load_npc(npc_name: String) -> Dictionary:
 		push_error("NPCDataLoader: cannot open ", path)
 		return {}
 	var text := file.get_as_text()
-	var result := JSON.parse_string(text)
+	var result: Variant = JSON.parse_string(text)
 	if not result is Dictionary:
 		push_error("NPCDataLoader: invalid JSON in ", path)
 		return {}

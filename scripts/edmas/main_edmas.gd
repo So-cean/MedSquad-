@@ -9,6 +9,10 @@ const MAP_SIZE := Vector2(1672.0, 941.0)
 @onready var hospital_map_manager: Node = $MapRoot/HospitalMapManager
 @onready var patient_manager: Node = $MapRoot/PatientManager
 @onready var fade_overlay: ColorRect = $CanvasLayer/FadeOverlay
+@onready var elevator_zone: Area2D = $MapRoot/ElevatorZone
+@onready var elevator_hint: Label = $CanvasLayer/UI/ElevatorHint
+@onready var npc_hint: Label = $CanvasLayer/UI/NPCInteractionHint
+var _nearby_npc = null  # The NPC the player is near
 @onready var mock_mode_toggle: CheckBox = $CanvasLayer/UI/VBox/MockModeToggle
 @onready var current_location_label: Label = $CanvasLayer/UI/VBox/CurrentLocationLabel
 @onready var current_state_label: Label = $CanvasLayer/UI/VBox/CurrentStateLabel
@@ -32,6 +36,8 @@ var _active_profile: Dictionary = {}
 var _dialogue_lines: Array = []
 var _dialogue_index: int = -1
 var _dialogue_started: bool = false
+
+const MAP_ORDER: Array[String] = ["MAP_ED_CORE", "MAP_DIAGNOSTICS", "MAP_DOWNSTREAM"]
 
 func _ready() -> void:
 	print("[EDMAS] Main_EDMAS scene loaded")
@@ -60,6 +66,83 @@ func _ready() -> void:
 	else:
 		api_client.get_snapshot()
 	_refresh_dialogue_panel()
+
+func _process(_delta: float) -> void:
+	# Elevator interaction
+	if elevator_zone and elevator_zone.is_player_inside():
+		var cur = hospital_map_manager.get_current_map_id()
+		var idx = MAP_ORDER.find(cur)
+		elevator_hint.text = ""
+		if idx > 0:
+			elevator_hint.text += "按 Q 下楼  "
+		if idx < MAP_ORDER.size() - 1:
+			elevator_hint.text += "按 E 上楼"
+		elevator_hint.visible = elevator_hint.text != ""
+	else:
+		elevator_hint.visible = false
+
+	# NPC interaction - scan all NPC interaction zones
+	_nearby_npc = null
+	var npcs = get_tree().get_nodes_in_group("npcs")
+	for npc in npcs:
+		var zone_node = npc.get_node_or_null("InteractionZone")
+		if zone_node and zone_node.has_method("is_player_inside") and zone_node.is_player_inside():
+			_nearby_npc = npc
+			break
+	npc_hint.visible = _nearby_npc != null
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Elevator interaction (E/Q keys)
+	if elevator_zone and elevator_zone.is_player_inside():
+		if event.is_action_pressed("elevator_up") or (event is InputEventKey and event.keycode == KEY_E and event.pressed and not event.echo):
+			get_viewport().set_input_as_handled()
+			_elevator_go(1)
+			return
+		elif event.is_action_pressed("elevator_down") or (event is InputEventKey and event.keycode == KEY_Q and event.pressed and not event.echo):
+			get_viewport().set_input_as_handled()
+			_elevator_go(-1)
+			return
+
+	# NPC interaction (E key when near an NPC)
+	if event is InputEventKey and event.keycode == KEY_E and event.pressed and not event.echo:
+		if _nearby_npc:
+			get_viewport().set_input_as_handled()
+			_talk_to_npc(_nearby_npc)
+
+
+func _talk_to_npc(npc) -> void:
+	var npc_name = npc.get_npc_name()
+	var knowledge = NPCDataLoader.get_knowledge(npc_name)
+	var response = "我是%s。" % [npc_name]
+	if knowledge.size() > 0:
+		var topic = knowledge[randi() % knowledge.size()]
+		var condition = topic.get("condition", "")
+		var action = topic.get("action", "")
+		if condition != "":
+			response = "我是%s。%s的患者，建议%s。" % [npc_name, condition, action]
+	var entry := DialogueEntry.new(npc_name, "与玩家对话", response)
+	npc.speak(entry)
+	print("[NPC] 玩家与 %s 对话" % npc_name)
+
+
+func _elevator_go(dir: int) -> void:
+	var cur = hospital_map_manager.get_current_map_id()
+	var idx = MAP_ORDER.find(cur)
+	var new_idx = idx + dir
+	if new_idx < 0 or new_idx >= MAP_ORDER.size():
+		return
+	var target_location: String = ""
+	match MAP_ORDER[new_idx]:
+		"MAP_ED_CORE":
+			target_location = "ED_ENTRANCE"
+		"MAP_DIAGNOSTICS":
+			target_location = "DIAGNOSTIC_WAITING"
+		"MAP_DOWNSTREAM":
+			target_location = "DISPOSITION"
+	if target_location != "":
+		_switch_map_with_fade(target_location)
+
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
