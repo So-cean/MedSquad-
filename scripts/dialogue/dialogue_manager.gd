@@ -25,14 +25,15 @@ func _ready() -> void:
 		var b := DialogueBubble.new()
 		b.name = "DialogueBubble_%d" % i
 		b.visible = false
-		_layer.add_child(b)
 		_bubble_pool.append(b)
 
-		# Spawn ConversationManager as child
-	var cm = preload("res://scripts/dialogue/conversation_manager.gd")
-	var cm_inst = cm.new()
-	cm_inst.name = "ConversationManager"
-	add_child(cm_inst)
+	# Spawn ConversationManager as child
+	var cm_script = load("res://scripts/dialogue/conversation_manager.gd")
+	if cm_script:
+		var cm_inst = cm_script.new()
+		if cm_inst:
+			cm_inst.name = "ConversationManager"
+			add_child(cm_inst)
 
 	# Spawn mock dialogue system as child
 	var mock := MockDialogueSystem.new()
