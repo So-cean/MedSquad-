@@ -1,7 +1,7 @@
 extends Control
 
-const MockDemoProvider = preload("res://scripts/edmas/mock/mock_demo_provider.gd")
-const MockAgentProfiles = preload("res://scripts/edmas/mock/mock_agent_profiles.gd")
+const _DemoProvider = preload("res://scripts/edmas/mock/mock_demo_provider.gd")
+const _AgentProfiles = preload("res://scripts/edmas/mock/mock_agent_profiles.gd")
 const MAP_SIZE := Vector2(1672.0, 941.0)
 
 @onready var api_client: Node = $APIClient
@@ -23,9 +23,9 @@ const MAP_SIZE := Vector2(1672.0, 941.0)
 @onready var dialogue_text_label: Label = $CanvasLayer/UI/DialoguePanel/VBox/DialogueTextLabel
 @onready var talk_button: Button = $CanvasLayer/UI/DialoguePanel/VBox/HBox/TalkButton
 @onready var next_dialogue_button: Button = $CanvasLayer/UI/DialoguePanel/VBox/HBox/NextDialogueButton
+var _mock_provider = _DemoProvider.new()
 
-var _mock_provider: MockDemoProvider = MockDemoProvider.new()
-var _agent_profiles: MockAgentProfiles = MockAgentProfiles.new()
+	var _agent_profiles = _AgentProfiles.new()
 var _use_mock_mode: bool = true
 var _active_patient_id: String = ""
 var _active_profile: Dictionary = {}

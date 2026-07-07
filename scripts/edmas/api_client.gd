@@ -43,7 +43,7 @@ func _parse_payload(endpoint: String, result: int, response_code: int, body: Pac
 		return {}
 	return parsed as Dictionary
 
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var endpoint: String = _pending_endpoint
 	_pending_endpoint = ""
 	var payload: Dictionary = _parse_payload(endpoint, result, response_code, body)

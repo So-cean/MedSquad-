@@ -263,7 +263,7 @@ func _reflow() -> void:
 	# Auto-scroll to bottom
 	var sb := _scroll.get_v_scroll_bar()
 	if sb:
-		_scroll.scroll_vertical = sb.max_value
+		_scroll.scroll_vertical = int(sb.max_value)
 
 	queue_redraw()
 
