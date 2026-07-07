@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://djwbkwpyqes8j"]
+
+[node name="map2_wall_collision" type="Node2D" unique_id=1310820894]
+
+[node name="Wall0" type="StaticBody2D" parent="." unique_id=1632383554]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Wall0" unique_id=1648085259]
+polygon = PackedVector2Array(0, 0, 0, 940, 1671, 940, 1671, 0)
