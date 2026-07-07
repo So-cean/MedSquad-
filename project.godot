@@ -20,6 +20,7 @@ config/icon="res://icon.png"
 
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 TimeSystem="*res://scripts/dialogue/time_system.gd"
+BackendBridge="*res://scripts/edmas/backend_bridge.gd"
 
 [rendering]
 
