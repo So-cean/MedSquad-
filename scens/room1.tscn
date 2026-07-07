@@ -10,6 +10,9 @@
 [ext_resource type="PackedScene" path="res://scens/nurse_green.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scens/patient_blue.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scens/patient_green.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scens/edmas/HospitalMap.tscn" id="11"]
+[ext_resource type="Script" path="res://scripts/edmas/patient_manager.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/room1.gd" id="13"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g0d10"]
 size = Vector2(572.25, 164.25)
@@ -23,6 +26,7 @@ size = Vector2(189, 183)
 [sub_resource type="TileSet" id="TileSet_ir26d"]
 
 [node name="Room1" type="Node2D" unique_id=1406564166]
+script = ExtResource("13")
 
 [node name="Node2D" type="Node2D" parent="." unique_id=1585489688]
 position = Vector2(4, 27)
@@ -93,3 +97,21 @@ position = Vector2(450, 450)
 
 [node name="PatientGreen" parent="." instance=ExtResource("10")]
 position = Vector2(550, 450)
+
+[node name="MapOverlay" type="CanvasLayer" parent="."]
+layer = 50
+visible = false
+
+[node name="HospitalMap" parent="MapOverlay" instance=ExtResource("11")]
+scale = Vector2(1.2, 1.2)
+position = Vector2(40, 20)
+
+[node name="PatientManager" type="Node" parent="MapOverlay/HospitalMap"]
+script = ExtResource("12")
+hospital_map_path = NodePath("..")
+
+[node name="ToggleLabel" type="Label" parent="MapOverlay"]
+position = Vector2(10, 700)
+text = "按 M 切换地图"
+add_theme_color_override("font_color", Color(0, 0, 0, 0.6))
+add_theme_font_size_override("font_size", 14)
