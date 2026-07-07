@@ -35,7 +35,7 @@ func _exit_tree() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_kill_server()
 
 
