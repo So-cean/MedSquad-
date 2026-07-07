@@ -108,19 +108,32 @@ func _on_llm_done(_result: int, code: int, _headers: Array, body: PackedByteArra
 	if not n:
 		return
 
-	if code != 200:
+	if code != 200 or body.is_empty():
+		# API call failed — emit a fallback "thinking" action instead of nothing
+		var fallback := {"type": "speak", "utterances": ["嗯，我在思考..."], "think": "正在等待回复..."}
 		n.state = State.IDLE
+		action_ready.emit(npc_id, fallback)
 		return
 
 	var text := body.get_string_from_utf8()
+	if text.is_empty():
+		var fallback := {"type": "speak", "utterances": ["请稍等..."], "think": "获取信息中..."}
+		n.state = State.IDLE
+		action_ready.emit(npc_id, fallback)
+		return
+
 	var parsed := JSON.parse_string(text)
 	if not parsed is Dictionary:
+		var fallback := {"type": "speak", "utterances": ["嗯，让我想想..."], "think": "处理请求中..."}
 		n.state = State.IDLE
+		action_ready.emit(npc_id, fallback)
 		return
 
 	var choices = parsed.get("choices", [])
 	if choices.is_empty():
+		var fallback := {"type": "speak", "utterances": ["好的，稍等一下"], "think": "正在处理..."}
 		n.state = State.IDLE
+		action_ready.emit(npc_id, fallback)
 		return
 
 	var content = choices[0].message.get("content", "")
