@@ -122,7 +122,7 @@ func _on_llm_done(_result: int, code: int, _headers: Array, body: PackedByteArra
 		action_ready.emit(npc_id, fallback)
 		return
 
-	var parsed := JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(text)
 	if not parsed is Dictionary:
 		var fallback := {"type": "speak", "utterances": ["嗯，让我想想..."], "think": "处理请求中..."}
 		n.state = State.IDLE
@@ -180,7 +180,7 @@ func _parse_action(text: String, npc_id: String) -> Dictionary:
 		if text.begins_with("json"):
 			text = text.substr(4)
 		text = text.strip_edges()
-	var parsed := JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(text)
 	if parsed is Dictionary:
 		var result := parsed as Dictionary
 		# Convert single dialogue to utterances
