@@ -1,197 +1,176 @@
 # MedSquad — 急诊科多智能体模拟
 
-Godot 4.7 医院主题 2D 俯视角游戏。模拟急诊科多个 NPC 的对话与协作。
+Godot 4.7 前端 + Python LLM 后端。模拟急诊科多智能体协作，NPC 由 LLM (DeepSeek-V4-Flash / HealthGPT-L14) 驱动实时决策。
 
 ---
 
 ## 启动
 
-### 方式一：Godot 编辑器
-
-从 [godotengine.org/download](https://godotengine.org/download/) 下载 **Godot 4.7** 标准版，打开 `project.godot`，按 F5 运行。
-
-### 方式二：网页版 (WebAssembly)
-
-**在线游玩：** [https://so-cean.github.io/MedSquad-/](https://so-cean.github.io/MedSquad-/)
-
-**本地测试 Web 构建：**
+### 方法一：完整模式（Godot + Backend）
 
 ```bash
-# 1. 导出 Web 构建
+# 终端 1: 启动 Python LLM 后端
+cd backend
+pip install -r requirements.txt 2>nul || pip install openai pydantic
+python -m app.services.backend_server
+
+# 终端 2: 启动 Godot
+godot project.godot
+```
+
+BackendBridge (autoload) 会自动连接 `localhost:8651` 上的后端服务。
+
+### 方法二：离线 Mock 模式（无需 Backend）
+
+直接打开 `project.godot` 按 F5 运行。MockDialogueSystem 提供 7 个预设对话流。
+
+### 方法三：网页版
+
+构建 Web 导出：
+```bash
 godot --headless --audio-driver Dummy --export-release Web build/web/index.html
-
-# 2. 启动 HTTP 服务器（Web 导出不能直接双击 index.html 打开，
-#    因为浏览器安全策略禁止 file:// 加载 WebAssembly）
-cd build\web
-python -m http.server 8080
-
-# 3. 浏览器访问 http://localhost:8080
+cd build\web && python -m http.server 8080
+# → http://localhost:8080
 ```
 
-> 本地双击 `build/web/index.html` 会报 `Failed to fetch` 错误，这是正常的浏览器 CORS 限制，必须通过 HTTP 服务器访问。
-
-### CI/CD 自动部署
-
-每次 push 到 `main`，GitHub Actions 自动：
-1. 拉取 `barichello/godot-ci:4.7` Docker 镜像
-2. 运行 Web 导出（单线程，兼容 GitHub Pages）
-3. 部署到 `gh-pages` 分支
-4. GitHub Pages 自动更新（首次需在仓库 Settings → Pages 中选择 `gh-pages` 分支）
+在线版：https://so-cean.github.io/MedSquad-/
 
 ---
 
-## 交互流程
-
-### NPC 对话气泡
-
-每个 NPC 说话时头顶会显示一个气泡框，分两阶段：
+## 架构
 
 ```
-Phase 1: 🤔 [蓝色文字] 思考内容 (逐字打字效果)
-			  ↓  思考完成，暂停 0.5s
-Phase 2: 🗣 [深色文字] 实际对话内容 (淡入)
-			  ↓  停留 duration 秒后
-			 气泡自动淡化消失 (0.4s)
+┌──────────────────────────────────────────────────────────────┐
+│  Godot 前端 (可视化 + 交互)                                   │
+│  ┌──────────────┐ ┌──────────────┐ ┌───────────────────┐    │
+│  │ FloorContainer│ │ TimelinePlayer│ │ Dialogue Bubble   │    │
+│  │ (楼层场景)    │ │ (动作执行器)  │ │ (气泡对话)        │    │
+│  └──────────────┘ └──────────────┘ └───────────────────┘    │
+│  ┌──────────────┐ ┌──────────────┐ ┌───────────────────┐    │
+│  │ SimClient    │ │ BackendBridge│ │ VirtualJoystick   │    │
+│  │ (HTTP 通信)  │ │ (进程管理)   │ │ (触控支持)        │    │
+│  └──────┬───────┘ └──────────────┘ └───────────────────┘    │
+└─────────┼────────────────────────────────────────────────────┘
+          │ HTTP POST (JSON)
+┌─────────▼────────────────────────────────────────────────────┐
+│  Python Backend (NPC 决策引擎)                                │
+│  ┌────────────────────────────┐ ┌────────────────────────┐   │
+│  │ SimulationEngine           │ │ FSM per NPC            │   │
+│  │  ├─ tick() → 并发决策      │ │  ├─ IDLE → DECIDING    │   │
+│  │  ├─ report_complete()      │ │  ├─ LLM call (concurrent)│  │
+│  │  └─ key rotation           │ │  └─ SPEAKING / MOVING  │   │
+│  └────────────────────────────┘ └────────────────────────┘   │
+│                        │                                      │
+│               ┌────────▼────────┐                             │
+│               │ Gitee AI API     │                             │
+│               │ DeepSeek-V4-Flash│                             │
+│               │ HealthGPT-L14    │                             │
+│               └─────────────────┘                             │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-- 没有思考内容时，直接进入 Phase 2
-- 气泡最大高度 180px，超过可滚动，自动滚到底部
-- 气泡有上下浮动动画
+### 数据流
 
-### 对话优先级与打断
+```
+Godot 启动 → BackendBridge 拉起 Python 服务
+  → SimClient POST /api/sim/init (注册 NPC)
+  → 每轮: POST /api/sim/tick
+  → NPC FSM 并发调 Gitee AI LLM
+  → 返回 actions[] → TimelinePlayer 执行
+  → 气泡/移动完成后 → POST /api/sim/complete
+  → 下一轮
+```
 
-| 优先级 | 场景 | 角色 |
+### LLM 模型路由
+
+| 场景 | 模型 | 速度 |
 |---|---|---|
-| 4 | 急诊抢救 | 急救护士 ↔ 手术医生 |
-| 3 | 手术准备 | 手术医生 |
-| 2 | 检验结果 | 检验科护士 |
-| 1 | 常规分诊、查房 | 分诊护士、住院护士 |
-| 0 | 患者回应 | 患者 |
+| NPC 快速决策 (下一步去哪/做什么) | DeepSeek-V4-Flash | ~2.7s |
+| 医学分诊/诊断 | HealthGPT-L14 | ~2.3s |
+| 对话生成 (含 think 背景知识) | DeepSeek-V4-Flash | ~2.7s |
 
-**打断规则：**
-
-```
-NPC A ↔ NPC B 正在对话
-	↓
-NPC C 想找 A
-	↓
-A 检查优先级
- ├─ C > B → A 切换到 C (B 进入空闲)
- └─ C ≤ B → C 进入 A 的等待队列
-			  A 结束后 → 检查队列 → 最高优先级出队
-```
-
-- 两组不相干的对话可以同时进行（各自独立气泡）
-
-### 时间系统
-
-- 每 1 真实秒 = 1 游戏分钟
-- 从 08:00（第1天）开始
-- 对话记录带游戏内时间戳
-- 未来 NPC 行为可依赖时间
+所有 NPC 的 LLM 调用**并发执行**（3 个 NPC 同时决策 ≈ 2.7s，非串行 8s）。
 
 ---
 
-## 对话流 (Mock 模式)
+## 楼层场景
 
-当前内置 7 个对话流，启动后随机循环播放：
-
-| 流 | 参与者 | 场景 |
+| 楼层 | 场景文件 | NPC |
 |---|---|---|
-| `triage` | 分诊护士 ↔ 患者 | 头痛分诊 → CT检查 |
-| `emergency` | 急救护士 ↔ 手术医生 | 车祸急救 → 手术准备 |
-| `lab_result` | 检验科护士 ↔ 分诊护士 | 检验报告 → 开药 |
-| `ward_round` | 住院护士 ↔ 患者 | 术后查房 |
-| `medication` | 分诊护士 ↔ 患者 | 用药指导 |
-| `surgery_prep` | 手术医生 ↔ 急救护士 | 术前准备 |
-| `shift_change` | 急救护士 ↔ 分诊护士 | 夜班交班 |
+| 1F 急诊接入区 | `Floor_ED_Core.tscn` | 分诊护士、急救护士、患者×2 |
+| 2F 检查诊断区 | `Floor_Diagnostics.tscn` | 手术医生、检验科护士 |
+| 3F 转归下游区 | `Floor_Downstream.tscn` | 住院护士 |
 
-流定义文件：`data/mock_flows.json`
+按 **E** 上楼、**Q** 下楼。每层独立场景，NPC 属于各自楼层。
 
 ---
 
-## NPC 角色
+## 交互
 
-| NPC | 职业 | 场景文件名 | 知识库文件 |
-|---|---|---|---|
-| 分诊护士 | 急诊分诊 | `nurse.gd` | `data/npcs/分诊护士.json` |
-| 手术医生 | 外科手术 | `scrubs_green.gd` | `data/npcs/手术医生.json` |
-| 急救护士 | 急诊抢救 | `nurse_blue.gd` | `data/npcs/急救护士.json` |
-| 检验科护士 | 检验科 | `scrubs_blue.gd` | `data/npcs/检验科护士.json` |
-| 住院护士 | 住院部 | `nurse_green.gd` | `data/npcs/住院护士.json` |
-| 患者 | 就诊 | `patient_blue/green.gd` | `data/npcs/患者.json` |
+| 操作 | 桌面 | 移动端 |
+|---|---|---|
+| 移动 | WASD | 屏幕左半触摸摇杆 |
+| 缩放 | 鼠标滚轮 | 双指捏合 |
+| 平移 | 鼠标中键拖拽 | 单指拖拽 |
+| 与 NPC 对话 | 走近按 E | 走近按 E |
+| 地图总览 | M | M |
+| 电梯 | 走近按 E/Q | 走近按 E/Q |
+
+---
+
+## 对话气泡
+
+```
+Phase 1: 🤔 [蓝色] 思考内容 (逐字打字效果)
+               ↓  完成后暂停 0.5s
+Phase 2: 🗣 [深色] 实际对话 (淡入)
+               ↓  停留后自动淡化消失
+```
+
+- 对话气泡由 DialogueManager (autoload) 管理 6 个气泡池
+- 支持 1v1 对话配对 + 优先级打断
+- NPC 对话中的 `think` 内容展示 LLM 的推理过程
 
 ---
 
 ## 项目结构
 
 ```
-├── bin/godot.exe             捆绑的 Godot 4.7 编辑器
-├── project.godot              项目配置 (含 autoload)
-├── data/
-│   ├── mock_flows.json        对话流定义 (JSON)
-│   └── npcs/*.json            各 NPC 角色知识库
+├── project.godot             项目配置 (含 autoload ×4)
+├── backend/                   Python LLM 后端
+│   └── app/
+│       ├── agents/            LLM Agent (step/plan/mock/scenario)
+│       ├── services/
+│       │   ├── npc_fsm.py     NPC 状态机引擎 (并发决策)
+│       │   ├── backend_server.py  HTTP 服务器 (端口 8651)
+│       │   └── ...
+│       └── schemas/           数据模型
 ├── scripts/
-│   ├── base_npc.gd            NPC 基类 (动画 + 移动 + 对话接口 + 记忆)
-│   ├── nurse.gd / scrubs_*.gd / patient_*.gd  各 NPC 脚本
-│   ├── player.gd / camera.gd  玩家与相机
-│   └── dialogue/
-│       ├── dialogue_entry.gd      对话数据接口
-│       ├── dialogue_bubble.gd     气泡 UI (CanvasLayer)
-│       ├── dialogue_manager.gd    全局管理者 (autoload)
-│       ├── conversation_manager.gd 对话配对 + 优先级打断
-│       ├── mock_dialogue_system.gd Mock 对话流引擎
-│       ├── memory_store.gd         NPC 记忆存储 (JSON)
-│       ├── npc_data_loader.gd      NPC 知识库加载
-│       └── time_system.gd         游戏内时间 (autoload)
-├── scens/                      场景文件
-│   ├── room1.tscn              主场景
-│   ├── player.tscn
-│   └── *.tscn                  各 NPC 场景
-├── assets/
-│   ├── rooms/                  背景图
-│   ├── doctor_frames/          玩家动画帧
-│   └── *_[npc]_frames/         各 NPC 动画帧
-├── character/                  原始精灵表
-└── Tilesets/                   医院主题瓦片
+│   ├── base_npc.gd            NPC 基类
+│   ├── edmas/
+│   │   ├── main_edmas.gd      主场景编排
+│   │   ├── backend_bridge.gd  Autoload (启动后端进程)
+│   │   ├── sim_client.gd      后端 HTTP 客户端
+│   │   ├── map_npc.gd         楼层 NPC
+│   │   ├── managers/
+│   │   │   └── timeline_player.gd  动作执行器
+│   │   └── mock/              Mock 数据
+│   ├── dialogue/              对话系统
+│   └── ui/virtual_joystick.gd 触控摇杆
+├── scens/edmas/
+│   ├── Main_EDMAS.tscn        主场景
+│   ├── Floor_ED_Core.tscn     1F 急诊接入区
+│   ├── Floor_Diagnostics.tscn 2F 检查诊断区
+│   └── Floor_Downstream.tscn  3F 转归下游区
+├── assets/maps/               医院地图 (3 张 + 碰撞体)
+│   ├── normalized/            规范化地图图
+│   └── collision/             自动生成墙体碰撞
+└── data/                      NPC 知识库 (JSON)
 ```
-
----
-
-## 架构说明
-
-### 三层架构
-
-```
-自动加载层 (autoload)
-  ├─ DialogueManager     气泡管理 + NPC注册
-  ├─ TimeSystem          游戏内时间推进
-  └─ ConversationManager  (DialogueManager 的子节点)
-							 对话配对 + 打断逻辑
-
-场景层
-  └─ BaseNpc (class_name)
-	   ├─ 8方向行走动画
-	   ├─ 对话接口 (speak / stop_speaking)
-	   └─ 记忆存储 (MemoryStore)
-
-数据层
-  ├─ data/mock_flows.json    对话流
-  ├─ data/npcs/*.json        NPC 知识库
-  └─ user://npc_memories/*/  运行时记忆 (JSON)
-```
-
-### 记忆系统 (Stanford 风格)
-
-每个 NPC 有独立记忆文件 (`user://npc_memories/{name}/nodes.json`)：
-- `dialogue` 类型：谁对谁说了什么 + think 内容
-- `thought` 类型：内部推理
-- 带游戏内时间戳
-- 供未来 LLM 检索作为 context
 
 ---
 
 ## 角色归属
 
 - 护士和医生精灵图：Jephed (Game Between The Lines)
-- 基于 Stanford Generative Agents 论文架构设计
+- LLM 引擎：DeepSeek-V4-Flash / HealthGPT-L14 via Gitee AI
