@@ -1,21 +1,25 @@
 extends RefCounted
+class_name MemoryStore
 
 ## Per-NPC associative memory store (Stanford-inspired).
 ##
-## Each NPC has a JSON file at npc_memories/{npc_name}/nodes.json
+## Each NPC has a JSON file at npc_memories/{unique_id}/nodes.json
 ## containing their memory nodes (events, thoughts, dialogues).
 ##
-## For now: simple JSON append. Future: SQLite.
+## IMPORTANT: unique_id must be UNIQUE per NPC instance (use node name).
+## display_name is used for thought subjects, not file paths.
 
-const MEMORY_DIR := "user://npc_memories/"
+const MEMORY_DIR: String = "user://npc_memories/"
 
-var _npc_name: String
+var _npc_id: String  # unique ID for file path (node name)
+var _npc_name: String  # display name for thought subjects
 var _nodes: Array = []
-var _dirty := false
+var _dirty: bool = false
 
 
-func _init(npc_name: String) -> void:
-	_npc_name = npc_name
+func _init(p_id: String, p_display_name: String = "") -> void:
+	_npc_id = p_id
+	_npc_name = p_display_name if not p_display_name.is_empty() else p_id
 	_load()
 
 
@@ -30,14 +34,14 @@ func add_dialogue(
 	importance: int,
 	keywords: Array[String]
 ) -> Dictionary:
-	var time_str := ""
+	var time_str: String = ""
 	if Engine.has_singleton("TimeSystem"):
 		time_str = TimeSystem.get_full_time_str()
 	else:
 		time_str = Time.get_datetime_string_from_system()
 
-	var node := {
-		id = "mem_%s_%d" % [_npc_name, _nodes.size() + 1],
+	var node: Dictionary = {
+		id = "mem_%s_%d" % [_npc_id, _nodes.size() + 1],
 		type = "dialogue",
 		created = time_str,
 		subject = speaker,
@@ -57,14 +61,14 @@ func add_dialogue(
 
 ## Add an internal thought (no dialogue bubble).
 func add_thought(content: String, importance: int) -> Dictionary:
-	var time_str := ""
+	var time_str: String = ""
 	if Engine.has_singleton("TimeSystem"):
 		time_str = TimeSystem.get_full_time_str()
 	else:
 		time_str = Time.get_datetime_string_from_system()
 
-	var node := {
-		id = "mem_%s_%d" % [_npc_name, _nodes.size() + 1],
+	var node: Dictionary = {
+		id = "mem_%s_%d" % [_npc_id, _nodes.size() + 1],
 		type = "thought",
 		created = time_str,
 		subject = _npc_name,
@@ -84,7 +88,7 @@ func add_thought(content: String, importance: int) -> Dictionary:
 ## Get recent N memory nodes for building LLM context.
 func get_recent(count: int = 10) -> Array:
 	var result: Array = []
-	var start = max(0, _nodes.size() - count)
+	var start: int = max(0, _nodes.size() - count)
 	for i in range(start, _nodes.size()):
 		result.append(_nodes[i])
 	return result
@@ -97,17 +101,41 @@ func get_all() -> Array:
 
 ## Get memory as a formatted string for context prompts.
 func get_context_str(count: int = 5) -> String:
-	var recent := get_recent(count)
+	var recent: Array = get_recent(count)
 	var lines: Array[String] = []
 	for node in recent:
-		var t = node.get("type", "?")
-		var s = node.get("subject", "")
-		var o = node.get("object", "")
-		var time = node.get("created", "")
+		var t: String = node.get("type", "?")
+		var s: String = node.get("subject", "")
+		var o: String = node.get("object", "")
+		var time: String = node.get("created", "")
 		if t == "dialogue":
 			lines.append("[%s] %s: %s" % [time, s, o])
 		elif t == "thought":
 			lines.append("[%s] %s 思考: %s" % [time, s, o])
+	return "\n".join(lines)
+
+
+## Get memory filtered by a conversation partner (speaker or listener matches).
+## Used by the nurse to get per-patient conversation history.
+func get_context_for_partner(partner_id: String, count: int = 5) -> String:
+	var filtered: Array = []
+	# Iterate in reverse (most recent first)
+	var i: int = _nodes.size() - 1
+	while i >= 0 and filtered.size() < count:
+		var node: Dictionary = _nodes[i]
+		var s: String = node.get("subject", "")
+		var participants: Array = node.get("participants", [])
+		# Match if subject is the partner, or listener (predicate) mentions partner
+		if s == partner_id or partner_id in participants:
+			filtered.append(node)
+		i -= 1
+	# Reverse to chronological order
+	filtered.reverse()
+	var lines: Array[String] = []
+	for node in filtered:
+		var s2: String = node.get("subject", "")
+		var o2: String = node.get("object", "")
+		lines.append("%s: %s" % [s2, o2])
 	return "\n".join(lines)
 
 
@@ -116,14 +144,14 @@ func get_context_str(count: int = 5) -> String:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _load() -> void:
-	var dir := MEMORY_DIR + _npc_name + "/"
-	var path := dir + "nodes.json"
+	var dir: String = MEMORY_DIR + _npc_id + "/"
+	var path: String = dir + "nodes.json"
 	if not DirAccess.dir_exists_absolute(dir):
 		return
-	var file := FileAccess.open(path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return
-	var text := file.get_as_text()
+	var text: String = file.get_as_text()
 	var parsed: Variant = JSON.parse_string(text)
 	if parsed is Array:
 		_nodes = parsed as Array
@@ -132,14 +160,14 @@ func _load() -> void:
 func _save() -> void:
 	if not _dirty:
 		return
-	var dir := MEMORY_DIR + _npc_name + "/"
-	var path := dir + "nodes.json"
+	var dir: String = MEMORY_DIR + _npc_id + "/"
+	var path: String = dir + "nodes.json"
 	if not DirAccess.dir_exists_absolute(dir):
 		DirAccess.make_dir_recursive_absolute(dir)
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if not file:
-		push_error("MemoryStore: cannot write ", path)
+		push_error("MemoryStore: cannot write %s" % path)
 		return
-	var json_str := JSON.stringify(_nodes, "\t")
+	var json_str: String = JSON.stringify(_nodes, "\t")
 	file.store_string(json_str)
 	_dirty = false

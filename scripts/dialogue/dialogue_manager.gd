@@ -6,7 +6,7 @@ extends Node
 ## Each frame it polls all registered BaseNpcs; those with non-empty
 ## DialogueEntry get a bubble assigned and positioned above their head.
 
-const POOL_SIZE := 6
+const POOL_SIZE: int = 6
 
 var _layer: CanvasLayer
 var _bubble_pool: Array[DialogueBubble] = []
@@ -15,8 +15,7 @@ var _npcs: Array[BaseNpc] = []
 # NPC → assigned bubble
 var _slots: Dictionary = {}
 
-
-var _bubbles_ready := false
+var _bubbles_ready: bool = false
 
 func _ready() -> void:
 	_layer = CanvasLayer.new()
@@ -24,24 +23,12 @@ func _ready() -> void:
 	add_child(_layer)
 
 	# Spawn ConversationManager as child
-	var cm_script = load("res://scripts/dialogue/conversation_manager.gd")
+	var cm_script: GDScript = load("res://scripts/dialogue/conversation_manager.gd")
 	if cm_script:
-		var cm_inst = cm_script.new()
+		var cm_inst: Node = cm_script.new()
 		if cm_inst:
 			cm_inst.name = "ConversationManager"
 			add_child(cm_inst)
-
-	# TimelinePlayer (receives actions from backend LLM)
-	var tp_script = load("res://scripts/edmas/managers/timeline_player.gd")
-	if tp_script:
-		var tp = tp_script.new()
-		tp.name = "TimelinePlayer"
-		add_child(tp)
-		var bb = get_node_or_null("/root/BackendBridge")
-		if bb and bb.has_method("get_sim_client"):
-			tp.setup(bb.get_sim_client())
-
-	# Chinese font fallback is handled per-bubble in DialogueBubble._ready()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -67,27 +54,27 @@ func _process(_delta: float) -> void:
 	if not _bubbles_ready:
 		_bubbles_ready = true
 		for i in POOL_SIZE:
-			var b := DialogueBubble.new()
+			var b: DialogueBubble = DialogueBubble.new()
 			b.name = "DialogueBubble_%d" % i
 			b.visible = false
 			_layer.add_child(b)
 			_bubble_pool.append(b)
 		return
 
-	var camera := _get_camera()
+	var camera: Camera2D = _get_camera()
 	if not camera:
 		return
 
 	# Assign / release bubbles based on NPC dialogue state
 	for npc in _npcs:
-		var entry := npc.get_dialogue_entry()
+		var entry: DialogueEntry = npc.get_dialogue_entry()
 		if entry and not entry.is_empty():
 			_ensure_bubble(npc, entry)
 		else:
 			_release_bubble(npc)
 
 	# Position active bubbles above their NPC
-	var viewport_size := get_viewport().get_visible_rect().size
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	for npc in _slots:
 		var bubble: DialogueBubble = _slots[npc]
 		var screen_pos: Vector2 = camera.get_canvas_transform() * npc.global_position
@@ -98,13 +85,16 @@ func _process(_delta: float) -> void:
 
 
 func _get_camera() -> Camera2D:
-	var vp := get_viewport()
+	var vp: Viewport = get_viewport()
 	return vp.get_camera_2d() if vp else null
 
 
 func _ensure_bubble(npc: BaseNpc, entry: DialogueEntry) -> void:
 	if _slots.has(npc):
-		# Already assigned — keep showing current entry
+		var b: DialogueBubble = _slots[npc]
+		if b._current_entry == entry:
+			return  # Same entry still playing — no update needed
+		b.show_entry(entry)  # New entry — refresh bubble
 		return
 
 	# Find a free bubble from the pool (skip fading ones)
@@ -117,8 +107,14 @@ func _ensure_bubble(npc: BaseNpc, entry: DialogueEntry) -> void:
 
 
 ## Returns the ConversationManager child node.
-func get_conversation_manager():
+func get_conversation_manager() -> Node:
 	return get_node_or_null("ConversationManager")
+
+
+## Returns the bubble assigned to an NPC, or null.
+func get_bubble_for_npc(npc: BaseNpc) -> DialogueBubble:
+	return _slots.get(npc) as DialogueBubble if _slots.has(npc) else null
+
 
 func _release_bubble(npc: BaseNpc) -> void:
 	if not _slots.has(npc):

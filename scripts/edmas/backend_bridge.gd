@@ -70,14 +70,18 @@ func _try_remote() -> void:
 # ── Desktop mode: process management ──
 
 func _kill_existing() -> void:
+	# Try graceful shutdown via HTTP
 	var http := HTTPRequest.new()
 	add_child(http)
-	http.timeout = 2
-	var err := http.request(LOCAL_URL + "/api/shutdown", [], HTTPClient.METHOD_POST, "{}")
-	if err == OK:
-		await http.request_completed
-		print("[BackendBridge] Previous server shut down")
+	http.timeout = 1
+	var _err := http.request(LOCAL_URL + "/api/shutdown", [], HTTPClient.METHOD_POST, "{}")
+	await http.request_completed
 	http.queue_free()
+	# Also kill any lingering python process on this port
+	if OS.get_name() == "Windows":
+		OS.execute("taskkill", ["/F", "/FI", "PID ge 0", "/IM", "python.exe"], [], false)
+	await get_tree().create_timer(0.5).timeout  # wait for port to free
+	print("[BackendBridge] Port cleared")
 
 
 func _start_backend() -> void:

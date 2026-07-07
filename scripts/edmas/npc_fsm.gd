@@ -1,190 +1,167 @@
 extends Node
 
-## NPC Finite State Machine — drives LLM-powered dialogue and actions.
-## Replaces the Python backend. Godot calls Gitee AI directly via HTTPRequest.
-## Multiple NPCs can decide concurrently (each has its own HTTPRequest).
+## NPC Finite State Machine — stateless LLM caller.
+## Owns nothing except in-flight HTTP requests.
+## One method: request(npc_id, prompt) → signal action_ready.
 
 signal action_ready(npc_id: String, action: Dictionary)
 
-enum State { IDLE, DECIDING, MOVING, SPEAKING, WAITING }
-
-const GITEE_BASE := "https://ai.gitee.com/api/v1/chat/completions"
-const GITEE_KEYS := [
+const GITEE_BASE: String = "https://ai.gitee.com/api/v1/chat/completions"
+const GITEE_KEYS: Array[String] = [
 	"HOHGSAMMVSBLXBHT2DMVMXQOEBP0VZSRJBXFW7S2",
 	"WCWPXT8ENFDYTCZ0F8OBZRFBMVMU9CDJVFVU4R1T",
 ]
-const MODEL_FAST := "DeepSeek-V4-Flash"
-const MODEL_MEDICAL := "HealthGPT-L14"
+const MODEL: String = "DeepSeek-V4-Flash"
 
-var _npcs: Dictionary = {}  # npc_id → NPC data
-var _key_idx := 0
-
-
-# ═══════════════════════════════════════════════════════════════════════
-#  Public API
-# ═══════════════════════════════════════════════════════════════════════
-
-## Register an NPC with the FSM engine.
-func register_npc(npc_id: String, display_name: String, role: String,
-		knowledge: Array, priority: int = 1) -> void:
-	_npcs[npc_id] = {
-		id = npc_id,
-		display_name = display_name,
-		role = role,
-		knowledge = knowledge,
-		priority = priority,
-		state = State.IDLE,
-		position = Vector2(600, 480),
-		memory = [],
-		_http = null,
-		_pending_prompt = "",
-	}
+var _in_flight: Dictionary = {}  # npc_id → HTTPRequest (in-flight only)
+var _key_idx: int = 0
 
 
-## Tick all idle NPCs — each sends a concurrent LLM request.
-## Emits action_ready for each response.
-func tick_all() -> void:
-	for nid in _npcs:
-		var n = _npcs[nid]
-		if n.state != State.IDLE:
-			continue
-		n.state = State.DECIDING
-		var prompt := _build_routing_prompt(n)
-		_send_llm(nid, MODEL_FAST, prompt)
-
-
-## Player talks to an NPC. Sends LLM request with conversation context.
-func player_talk(npc_id: String, player_text: String) -> void:
-	var n = _npcs.get(npc_id)
-	if not n:
-		return
-	n.memory.append({"role": "player", "dialogue": player_text})
-	var prompt := _build_dialogue_prompt(n, player_text)
-	_send_llm(npc_id, MODEL_FAST, prompt)
-
-
-## Mark NPC action as complete, return to IDLE.
-func report_complete(npc_id: String) -> void:
-	var n = _npcs.get(npc_id)
-	if n:
-		n.state = State.IDLE
-
-
-## Get NPC state summary.
-func get_status() -> Dictionary:
-	var states := {}
-	for nid in _npcs:
-		states[nid] = State.keys()[_npcs[nid].state]
-	return states
-
-
-# ═══════════════════════════════════════════════════════════════════════
-#  Internal — LLM calls
-# ═══════════════════════════════════════════════════════════════════════
-
-func _send_llm(npc_id: String, model: String, prompt: String) -> void:
+## Fire an LLM request for an NPC. Emits action_ready on completion.
+func request(npc_id: String, prompt: String) -> void:
 	var key: String = GITEE_KEYS[_key_idx % GITEE_KEYS.size()]
 	_key_idx = (_key_idx + 1) % GITEE_KEYS.size()
 
-	var body := JSON.stringify({
-		model = model,
+	var body: String = JSON.stringify({
+		model = MODEL,
 		messages = [{"role": "user", "content": prompt}],
 		temperature = 0.3,
 		max_tokens = 512,
 	})
 
-	var http := HTTPRequest.new()
-	http.name = "LLM_" + npc_id
-	add_child(http)
+	var http: HTTPRequest = HTTPRequest.new()
 	http.timeout = 30
-	http.request_completed.connect(_on_llm_done.bind(npc_id))
+	http.request_completed.connect(_on_done.bind(npc_id))
+	add_child(http)
 	http.request(GITEE_BASE, ["Content-Type: application/json",
 		"Authorization: Bearer " + key], HTTPClient.METHOD_POST, body)
 
+	# Track for cleanup
+	var old: HTTPRequest = _in_flight.get(npc_id)
+	if old:
+		old.queue_free()
+	_in_flight[npc_id] = http
 
-func _on_llm_done(_result: int, code: int, _headers: Array, body: PackedByteArray,
+	# Timestamp for debug
+	http.set_meta("t0", Time.get_ticks_msec() / 1000.0)
+
+
+func _on_done(_result: int, code: int, _headers: Array, body: PackedByteArray,
 		npc_id: String) -> void:
-	var n = _npcs.get(npc_id)
-	if not n:
-		return
+	# Cleanup
+	var http: HTTPRequest = _in_flight.get(npc_id)
+	if http:
+		_in_flight.erase(npc_id)
+		http.queue_free()
+
+	var t0: float = http.get_meta("t0", 0.0) if http else 0.0
+	var elapsed: float = (Time.get_ticks_msec() / 1000.0) - t0 if t0 > 0 else -1.0
+	print("[LLM]  [%s] code=%d elapsed=%.1fs" % [npc_id, code, elapsed])
 
 	if code != 200 or body.is_empty():
-		# API call failed — emit a fallback "thinking" action instead of nothing
-		var fallback := {"type": "speak", "utterances": ["嗯，我在思考..."], "think": "正在等待回复..."}
-		n.state = State.IDLE
-		action_ready.emit(npc_id, fallback)
+		action_ready.emit(npc_id, {"type": "speak", "utterances": ["嗯..."], "think": "等待回复"})
 		return
 
-	var text := body.get_string_from_utf8()
+	var text: String = body.get_string_from_utf8()
 	if text.is_empty():
-		var fallback := {"type": "speak", "utterances": ["请稍等..."], "think": "获取信息中..."}
-		n.state = State.IDLE
-		action_ready.emit(npc_id, fallback)
+		action_ready.emit(npc_id, {"type": "speak", "utterances": ["请稍等..."], "think": "获取信息"})
 		return
 
 	var parsed: Variant = JSON.parse_string(text)
 	if not parsed is Dictionary:
-		var fallback := {"type": "speak", "utterances": ["嗯，让我想想..."], "think": "处理请求中..."}
-		n.state = State.IDLE
-		action_ready.emit(npc_id, fallback)
+		action_ready.emit(npc_id, {"type": "speak", "utterances": ["嗯..."], "think": "请求失败"})
 		return
 
-	var choices = parsed.get("choices", [])
+	var choices: Array = parsed.get("choices", [])
 	if choices.is_empty():
-		var fallback := {"type": "speak", "utterances": ["好的，稍等一下"], "think": "正在处理..."}
-		n.state = State.IDLE
-		action_ready.emit(npc_id, fallback)
+		action_ready.emit(npc_id, {"type": "speak", "utterances": ["好的"], "think": "处理中"})
 		return
 
-	var content = choices[0].message.get("content", "")
-	var action := _parse_action(content, npc_id)
-	action["think"] = content
+	var content: String = ""
+	var choice: Variant = choices[0]
+	if choice is Dictionary:
+		var msg: Variant = choice.get("message", {})
+		if msg is Dictionary:
+			content = msg.get("content", "")
 
-	# Record to memory
-	if action.get("type") == "speak":
-		n.memory.append({"role": n.display_name, "dialogue": action.get("utterances", [])})
-
-	n.state = State.IDLE
-	action_ready.emit(npc_id, action)
+	action_ready.emit(npc_id, _parse_action(content, npc_id))
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Prompt builders
-# ═══════════════════════════════════════════════════════════════════════
-
-func _build_routing_prompt(n: Dictionary) -> String:
-	return ("你是一名医院" + n.display_name + "。当前场景：\n"
-		+ "- 你的位置：" + str(n.position) + "\n"
-		+ "- 你的专业技能：" + str(n.knowledge) + "\n\n"
-		+ "请输出你的下一步行动，仅JSON格式：\n"
-		+ '{"type": "speak|move_to|wait", "utterances": ["短句1","短句2"],'
-		+ ' "target": "目标NPC ID", "duration": 数字}\n'
-		+ "注意：每条不超过15个字，一条只问一个问题。")
-
-
-func _build_dialogue_prompt(n: Dictionary, player_input: String) -> String:
-	var history: Array = n.memory.slice(-6)
-	return ("你是一名医院" + n.display_name + "，正在与患者对话。\n\n"
-		+ "对话历史：" + JSON.stringify(history, "", false) + "\n\n"
-		+ "患者刚才说：" + player_input + "\n\n"
-		+ "请输出JSON：\n"
-		+ '{"think": "推理过程", "utterances": ["一句话回复不超过15字"]}\n'
-		+ "注意：每条不超过15字，一条只说一件事。")
-
-
+# Strip markdown fences, parse JSON, fallback to smart text extraction.
 func _parse_action(text: String, npc_id: String) -> Dictionary:
 	text = text.strip_edges()
 	# Strip markdown code fences
 	if "```" in text:
-		text = text.split("```")[1]
-		if text.begins_with("json"):
-			text = text.substr(4)
-		text = text.strip_edges()
+		var parts: PackedStringArray = text.split("```")
+		if parts.size() >= 2:
+			text = parts[1]
+			if text.begins_with("json"):
+				text = text.substr(4)
+			text = text.strip_edges()
+
+	# Try JSON first
 	var parsed: Variant = JSON.parse_string(text)
 	if parsed is Dictionary:
-		var result := parsed as Dictionary
-		# Convert single dialogue to utterances
+		var result: Dictionary = parsed as Dictionary
 		if result.has("dialogue") and not result.has("utterances"):
 			result["utterances"] = [result["dialogue"]]
+		if not result.has("type"):
+			result["type"] = "speak"
 		return result
-	return {"type": "speak", "utterances": [text], "npc_id": npc_id}
+
+	# JSON failed — try to extract think + utterances from plain text
+	return _extract_from_plain_text(text, npc_id)
+
+
+## When LLM returns plain text instead of JSON, try to split into think + utterances.
+## Common patterns:
+##   "think: xxx\n utterances: yyy"
+##   "thinkxxx\n\nyyy"
+##   "思考：xxx\nyyy"
+func _extract_from_plain_text(text: String, npc_id: String) -> Dictionary:
+	var think: String = ""
+	var utterances: Array = []
+
+	# Pattern 1: "think:" or "思考：" prefix
+	var lower_text: String = text.to_lower()
+	if lower_text.begins_with("think") or text.begins_with("思考") or text.begins_with("想"):
+		# Find the split point — look for newline after the think part
+		var split_idx: int = text.find("\n")
+		if split_idx > 0:
+			var first_line: String = text.substr(0, split_idx).strip_edges()
+			var rest: String = text.substr(split_idx + 1).strip_edges()
+			# Remove "think:" / "思考：" prefix from first line
+			if first_line.to_lower().begins_with("think:"):
+				think = first_line.substr(6).strip_edges()
+			elif first_line.to_lower().begins_with("think"):
+				think = first_line.substr(5).strip_edges()
+			elif first_line.begins_with("思考："):
+				think = first_line.substr(3).strip_edges()
+			elif first_line.begins_with("思考:"):
+				think = first_line.substr(3).strip_edges()
+			else:
+				think = first_line
+			# Rest is the utterance
+			if not rest.is_empty():
+				# Split by newline into multiple utterances
+				var lines: PackedStringArray = rest.split("\n")
+				for line in lines:
+					var clean: String = line.strip_edges().trim_prefix('"').trim_suffix('"').trim_prefix('"').trim_suffix('"')
+					if not clean.is_empty():
+						utterances.append(clean)
+		else:
+			# No newline — entire text is think or utterance
+			utterances.append(text)
+	else:
+		# No think prefix — entire text is utterance
+		utterances.append(text)
+
+	if utterances.is_empty():
+		utterances.append("...")
+
+	return {
+		"type": "speak",
+		"think": think,
+		"utterances": utterances,
+		"npc_id": npc_id,
+	}

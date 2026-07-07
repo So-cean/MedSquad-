@@ -4,11 +4,19 @@ extends CharacterBody2D
 ## Base class for all NPC characters.
 ##
 ## Handles:
-##   - 8-direction wander movement
+##   - 8-direction wander movement + NavigationAgent2D pathfinding
 ##   - Code-generated SpriteFrames from per-direction PNGs
-##   - configurable walk_flip for UP/DOWN (walk_a→walk_b)
 ##   - DialogueEntry interface (think / dialogue)
-##   - Auto-registration with DialogueManager
+##   - Auto-registration with DialogueManager + NpcManager
+##   - NPC state machine (arrived → waiting → examined → discharged)
+
+enum NpcState {
+	ARRIVED,          # 刚到，还没跟护士说话
+	WAITING,          # 护士让等着
+	GOING_TO_ROOM,    # 正在走去某房间
+	BEING_EXAMINED,   # 正在检查中
+	DISCHARGED,       # 出院了
+}
 ##
 ## Subclasses override:
 ##   get_frames_dir() → String          REQUIRED
@@ -79,9 +87,17 @@ var _anim: AnimatedSprite2D
 # ── Dialogue ──
 var _current_entry: DialogueEntry = null
 
-# ── Memory & Conversation (lazy init) ──
-var _memory = null  # MemoryStore, lazy-init
-var _conv_status: String = "idle"
+# ── Memory ──
+var _memory: MemoryStore = null
+
+# ── NPC State ──
+var _npc_state: int = NpcState.ARRIVED
+var _state_target: String = ""  # 目标房间名 (e.g. "TRIAGE", "ED_RESUS")
+
+# ── Navigation ──
+var _nav_agent: NavigationAgent2D = null
+var _is_walking: bool = false
+var _walk_target: String = ""
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -98,17 +114,20 @@ func _ready() -> void:
 	# Register with DialogueManager (autoload singleton, always alive)
 	DialogueManager.register(self)
 
-	# Register with ConversationManager (child of DialogueManager)
-	var cm = DialogueManager.get_conversation_manager()
-	if cm:
-		cm.register(self)
+	# Initialize memory store (use node name for unique file path)
+	_memory = MemoryStore.new(name, get_npc_name())
 
-	# Initialize memory store
-	var mem_script = load("res://scripts/dialogue/memory_store.gd")
-	if mem_script:
-		_memory = mem_script.new(get_npc_name())
+	# Setup navigation agent (created lazily if needed)
+	var nav: Node = get_node_or_null("NavigationAgent2D")
+	if nav is NavigationAgent2D:
+		_nav_agent = nav
+		_nav_agent.path_desired_distance = 8.0
+		_nav_agent.target_desired_distance = 8.0
+		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
+		_nav_agent.target_reached.connect(_on_nav_target_reached)
+		_nav_agent.navigation_finished.connect(_on_nav_finished)
 
-	# Add to discovery group for MockDialogueSystem
+	# Add to discovery group
 	add_to_group(get_npc_group())
 
 
@@ -121,14 +140,14 @@ func _exit_tree() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_frames() -> void:
-	var frames_dir := get_frames_dir()
-	var npc_tag := get_npc_name()
+	var frames_dir: String = get_frames_dir()
+	var npc_tag: String = get_npc_name()
 	if frames_dir.is_empty():
 		push_error("BaseNpc: get_frames_dir() returned empty path for ", npc_tag)
 		return
 
-	var sf := SpriteFrames.new()
-	var walk_flip := get_walk_flip_dirs()
+	var sf: SpriteFrames = SpriteFrames.new()
+	var walk_flip: Array[String] = get_walk_flip_dirs()
 
 	# ── Idle frames ──
 	#       down direction uses a separate idle_down.png (standalone 32×32),
@@ -179,6 +198,11 @@ func _build_frames() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _physics_process(delta: float) -> void:
+	# Navigation takes priority over wandering
+	if _is_walking and _nav_agent:
+		_nav_step()
+		return
+
 	_timer -= delta
 
 	match _state:
@@ -196,6 +220,71 @@ func _physics_process(delta: float) -> void:
 		_start_move()
 
 	_update_anim()
+
+
+# ── Navigation ───────────────────────────────────────────────
+
+## Walk to a named location (e.g. "TRIAGE", "CT_ROOM").
+func walk_to(location_name: String) -> void:
+	if not _nav_agent:
+		push_warning("BaseNpc: no NavigationAgent2D child, cannot walk_to")
+		return
+	_walk_target = location_name
+	var target: Vector2 = HospitalMapData.get_location(location_name)
+	_nav_agent.target_position = target
+	_is_walking = true
+	_state = 1  # walking state for anim
+
+
+func _nav_step() -> void:
+	if not _nav_agent or _nav_agent.is_navigation_finished():
+		_is_walking = false
+		velocity = Vector2.ZERO
+		_start_idle()
+		return
+
+	var next_pos: Vector2 = _nav_agent.get_next_path_position()
+	var new_vel: Vector2 = global_position.direction_to(next_pos) * speed
+	_nav_agent.velocity = new_vel  # triggers velocity_computed if avoidance on
+	_update_walk_dir(new_vel)
+
+
+func _on_nav_velocity_computed(safe_velocity: Vector2) -> void:
+	velocity = safe_velocity
+	move_and_slide()
+
+
+func _on_nav_target_reached() -> void:
+	print("[Nav] %s arrived at %s" % [get_npc_name(), _walk_target])
+	_is_walking = false
+	velocity = Vector2.ZERO
+	_walk_target = ""
+
+
+func _on_nav_finished() -> void:
+	_is_walking = false
+	velocity = Vector2.ZERO
+
+
+func _update_walk_dir(vel: Vector2) -> void:
+	# Pick facing direction based on velocity for walk anim
+	if vel.length() < 1.0:
+		return
+	var angle: float = vel.angle()
+	# Map angle to dir_idx (0=down, 2=right, 4=up, 6=left)
+	var idx: int = int(round(angle / (PI / 4))) % 8
+	if idx < 0: idx += 8
+	# angle 0 = right (idx 2), PI/2 = down (idx 0), PI = left (idx 6), -PI/2 = up (idx 4)
+	# Simpler: just use 4-direction
+	if abs(vel.x) > abs(vel.y):
+		_dir_idx = 2 if vel.x > 0 else 6  # right or left
+	else:
+		_dir_idx = 0 if vel.y > 0 else 4  # down or up
+	_update_anim()
+
+
+func is_walking() -> bool:
+	return _is_walking
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -265,10 +354,14 @@ func stop_speaking() -> void:
 func get_dialogue_entry() -> DialogueEntry:
 	return _current_entry
 
+## Get the NPC's memory store for conversation context.
+func get_memory() -> MemoryStore:
+	return _memory
+
 ## Record a dialogue exchange to this NPC's memory.
 func record_dialogue(listener: String, think: String, dialogue: String, importance: int = 5) -> void:
 	if _memory:
-		_memory.add_dialogue(get_npc_name(), listener, think, dialogue, importance, PackedStringArray())
+		_memory.add_dialogue(get_npc_name(), listener, think, dialogue, importance, [])
 
 ## Record an internal thought to memory.
 func record_thought(content: String, importance: int = 3) -> void:
@@ -281,10 +374,23 @@ func get_memory_context(count: int = 5) -> String:
 		return _memory.get_context_str(count)
 	return ""
 
-## Set conversation status for ConversationManager.
-func set_conv_status(status: String) -> void:
-	_conv_status = status
+## Get NPC state name (for LLM prompt).
+func get_state_name() -> String:
+	match _npc_state:
+		NpcState.ARRIVED: return "刚到"
+		NpcState.WAITING: return "候诊等待中"
+		NpcState.GOING_TO_ROOM: return "正前往" + _state_target
+		NpcState.BEING_EXAMINED: return "检查中(" + _state_target + ")"
+		NpcState.DISCHARGED: return "已出院"
+	return "未知"
 
-## Get conversation status.
-func get_conv_status() -> String:
-	return _conv_status
+## Set NPC state.
+func set_state(new_state: int, target: String = "") -> void:
+	_npc_state = new_state
+	_state_target = target
+	if new_state == NpcState.GOING_TO_ROOM and not target.is_empty():
+		walk_to(target)
+
+## Get raw state enum value.
+func get_state() -> int:
+	return _npc_state

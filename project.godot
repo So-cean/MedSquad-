@@ -20,7 +20,9 @@ config/icon="res://icon.png"
 
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 TimeSystem="*res://scripts/dialogue/time_system.gd"
-BackendBridge="*res://scripts/edmas/backend_bridge.gd"
+NpcManager="*res://scripts/edmas/npc_manager.gd"
+HospitalMapData="*res://scripts/edmas/hospital_map_data.gd"
+; BackendBridge removed — GDScript-only NPC FSM now handles LLM calls directly
 
 [rendering]
 

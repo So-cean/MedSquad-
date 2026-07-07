@@ -5,25 +5,31 @@ extends Control
 ##
 ## Thread-safe for re-entry: if show_entry() is called while utterances are
 ## still playing, pending timers are discarded via a sequence counter.
+##
+## Emits done() when all utterances have finished displaying.
+
+signal done()
 
 enum Phase { IDLE, THINK, UTTERANCE, DONE }
 
-const MAX_WIDTH := 220
-const MIN_WIDTH := 120
-const MAX_HEIGHT := 180.0
-const PAD_H := 16
-const PAD_V := 10
-const TAIL_W := 14.0
-const TAIL_H := 8.0
-const FONT_SIZE := 13
-const COLOR_BG := Color(1, 1, 1, 0.95)
-const COLOR_TEXT := Color(0.15, 0.15, 0.15)
-const COLOR_THINK := Color(0.25, 0.40, 0.80)
-const COLOR_THINK_BG := Color(0.92, 0.95, 0.98, 0.92)
-const TYPEWRITER_INTERVAL := 0.04
-const THINK_PAUSE := 0.5
-const FADE_DURATION := 0.25
-const UTTERANCE_TIME := 2.5
+const MAX_WIDTH: int = 220
+const MIN_WIDTH: int = 120
+const MAX_HEIGHT: float = 180.0
+const PAD_H: int = 16
+const PAD_V: int = 10
+const TAIL_W: float = 14.0
+const TAIL_H: float = 8.0
+const FONT_SIZE: int = 13
+const COLOR_BG: Color = Color(1, 1, 1, 0.95)
+const COLOR_TEXT: Color = Color(0.15, 0.15, 0.15)
+const COLOR_THINK: Color = Color(0.25, 0.40, 0.80)
+const COLOR_THINK_BG: Color = Color(0.92, 0.95, 0.98, 0.92)
+const TYPEWRITER_INTERVAL: float = 0.04
+const THINK_PAUSE: float = 0.5
+const FADE_DURATION: float = 0.25
+const UTTERANCE_TIME: float = 2.5  # baseline; actual = max(chars/10, 1.5)
+const MIN_UTTERANCE_TIME: float = 1.5
+const CHARS_PER_SEC: float = 10.0  # reading speed for display timing
 
 # ── Node refs ──
 var _panel: Panel
@@ -38,14 +44,19 @@ var _typewriter: Timer
 var _phase: int = Phase.IDLE
 var _think_text: String = ""
 var _think_pos: int = 0
-var _utterances: Array[String] = []
+var _utterances: Array = []
 var _utter_idx: int = 0
 var _random_phase: float = 0.0
 var _current_entry: DialogueEntry = null
-var _needs_resize := false
-var _is_fading := false
+var _needs_resize: bool = false
+var _is_fading: bool = false
 var _fade_tween: Tween = null
 var _seq: int = 0  # incremented on each show_entry(); async callbacks check this
+
+
+## Exposed for external code to track which generation this bubble is showing.
+func get_seq() -> int:
+	return _seq
 
 
 func _init() -> void:
@@ -89,7 +100,7 @@ func fade_out() -> void:
 
 func show_entry(entry: DialogueEntry) -> void:
 	_seq += 1  # Invalidate old async callbacks
-	var my_seq := _seq
+	var my_seq: int = _seq
 
 	if _is_fading:
 		_kill_tweens()
@@ -144,7 +155,7 @@ func _build_ui() -> void:
 	_panel.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_panel)
 
-	var style := StyleBoxFlat.new()
+	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = COLOR_BG
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
@@ -191,13 +202,13 @@ func _build_ui() -> void:
 func _reflow() -> void:
 	if not _row:
 		return
-	var min_size := _row.get_combined_minimum_size()
+	var min_size: Vector2 = _row.get_combined_minimum_size()
 	var bw: float = clamp(min_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
-	var content_h := min_size.y + PAD_V
+	var content_h: float = min_size.y + PAD_V
 	var bh: float = minf(content_h, MAX_HEIGHT) + TAIL_H
 
 	size = Vector2(bw, bh)
-	var panel_h := bh - TAIL_H
+	var panel_h: float = bh - TAIL_H
 	if _panel: _panel.size = Vector2(bw, panel_h)
 	if _scroll:
 		_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
@@ -207,7 +218,7 @@ func _reflow() -> void:
 		_think_bg.position = Vector2.ZERO
 		_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
 
-	var sb := _scroll.get_v_scroll_bar() if _scroll else null
+	var sb: VScrollBar = _scroll.get_v_scroll_bar() if _scroll else null
 	if sb:
 		_scroll.scroll_vertical = int(sb.max_value)
 
@@ -217,9 +228,9 @@ func _reflow() -> void:
 func _draw() -> void:
 	if not visible:
 		return
-	var cx := size.x * 0.5
-	var by := size.y - TAIL_H
-	var pts := PackedVector2Array([
+	var cx: float = size.x * 0.5
+	var by: float = size.y - TAIL_H
+	var pts: PackedVector2Array = PackedVector2Array([
 		Vector2(cx, by + TAIL_H),
 		Vector2(cx - TAIL_W * 0.5, by),
 		Vector2(cx + TAIL_W * 0.5, by),
@@ -249,12 +260,12 @@ func _on_tick() -> void:
 
 
 func _start_think_fadeout() -> void:
-	var my_seq := _seq
+	var my_seq: int = _seq
 	await get_tree().create_timer(THINK_PAUSE).timeout
 	if my_seq != _seq or not is_instance_valid(self):
 		return
 	_phase = Phase.UTTERANCE
-	var t := create_tween()
+	var t: Tween = create_tween()
 	t.tween_property(_row, "modulate:a", 0.0, FADE_DURATION)
 	t.parallel().tween_property(_think_bg, "modulate:a", 0.0, FADE_DURATION)
 	t.tween_callback(_show_dialogue.bind(my_seq))
@@ -284,17 +295,28 @@ func _advance_utterance(my_seq: int) -> void:
 		return
 	if _utter_idx >= _utterances.size():
 		_phase = Phase.DONE
+		done.emit()
 		return
 
+	var current_text: String = str(_utterances[_utter_idx])
 	if _label:
-		_label.text = _utterances[_utter_idx]
+		_label.text = current_text
 	_utter_idx += 1
 	_needs_resize = true
 
+	# Display time based on character count (min 1.5s, ~10 chars/sec)
+	var display_time: float = maxf(current_text.length() / CHARS_PER_SEC, MIN_UTTERANCE_TIME)
+
 	if _utter_idx < _utterances.size():
-		await get_tree().create_timer(UTTERANCE_TIME).timeout
+		await get_tree().create_timer(display_time).timeout
 		if my_seq == _seq and is_instance_valid(self):
 			_advance_utterance(my_seq)
+	else:
+		# Last utterance — wait, then signal done
+		await get_tree().create_timer(display_time).timeout
+		if my_seq == _seq and is_instance_valid(self):
+			_phase = Phase.DONE
+			done.emit()
 
 
 func _kill_tweens() -> void:

@@ -37,7 +37,7 @@ func _init(
 
 ## Returns true when there is nothing to show in the bubble.
 func is_empty() -> bool:
-	return dialogue.is_empty() and utterances.is_empty()
+	return think.is_empty() and dialogue.is_empty() and utterances.is_empty()
 
 ## Returns the number of display items.
 func utterance_count() -> int:
