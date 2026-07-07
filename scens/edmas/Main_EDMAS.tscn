@@ -122,8 +122,8 @@ text = "Next"
 
 [node name="Player" parent="MapRoot" instance=ExtResource("6")]
 position = Vector2(180, 210)
-collision_layer = 0
-collision_mask = 0
+collision_layer = 1
+collision_mask = 1
 scale = Vector2(2.5, 2.5)
 
 [node name="Camera2D" parent="MapRoot/Player"]
