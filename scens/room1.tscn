@@ -11,8 +11,8 @@
 [ext_resource type="PackedScene" path="res://scens/patient_blue.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scens/patient_green.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://scens/edmas/HospitalMap.tscn" id="11"]
-[ext_resource type="Script" path="res://scripts/edmas/patient_manager.gd" id="12"]
-[ext_resource type="Script" path="res://scripts/room1.gd" id="13"]
+[ext_resource type="Script" uid="uid://mdvk2d54hhve" path="res://scripts/edmas/patient_manager.gd" id="12"]
+[ext_resource type="Script" uid="uid://dmn6f8of5r72y" path="res://scripts/room1.gd" id="13"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g0d10"]
 size = Vector2(572.25, 164.25)
@@ -74,44 +74,45 @@ shape = SubResource("RectangleShape2D_hkyky")
 [node name="Floor" type="TileMapLayer" parent="." unique_id=1403078717]
 tile_set = SubResource("TileSet_ir26d")
 
-[node name="Player" parent="." instance=ExtResource("3")]
+[node name="Player" parent="." unique_id=957890127 instance=ExtResource("3")]
 position = Vector2(400, 350)
 
-[node name="Nurse" parent="." instance=ExtResource("4")]
+[node name="Nurse" parent="." unique_id=1994110967 instance=ExtResource("4")]
 position = Vector2(550, 300)
 
-[node name="ScrubsGreen" parent="." instance=ExtResource("5")]
+[node name="ScrubsGreen" parent="." unique_id=440746339 instance=ExtResource("5")]
 position = Vector2(650, 400)
 
-[node name="NurseBlue" parent="." instance=ExtResource("6")]
+[node name="NurseBlue" parent="." unique_id=954758335 instance=ExtResource("6")]
 position = Vector2(750, 350)
 
-[node name="ScrubsBlue" parent="." instance=ExtResource("7")]
+[node name="ScrubsBlue" parent="." unique_id=1314522047 instance=ExtResource("7")]
 position = Vector2(850, 300)
 
-[node name="NurseGreen" parent="." instance=ExtResource("8")]
+[node name="NurseGreen" parent="." unique_id=1108712207 instance=ExtResource("8")]
 position = Vector2(350, 450)
 
-[node name="PatientBlue" parent="." instance=ExtResource("9")]
+[node name="PatientBlue" parent="." unique_id=1357494173 instance=ExtResource("9")]
 position = Vector2(450, 450)
 
-[node name="PatientGreen" parent="." instance=ExtResource("10")]
+[node name="PatientGreen" parent="." unique_id=392122882 instance=ExtResource("10")]
 position = Vector2(550, 450)
 
-[node name="MapOverlay" type="CanvasLayer" parent="."]
+[node name="MapOverlay" type="CanvasLayer" parent="." unique_id=662804802]
 layer = 50
 visible = false
 
-[node name="HospitalMap" parent="MapOverlay" instance=ExtResource("11")]
-scale = Vector2(1.2, 1.2)
+[node name="HospitalMap" parent="MapOverlay" unique_id=1677025769 instance=ExtResource("11")]
 position = Vector2(40, 20)
+scale = Vector2(1.2, 1.2)
 
-[node name="PatientManager" type="Node" parent="MapOverlay/HospitalMap"]
+[node name="PatientManager" type="Node" parent="MapOverlay/HospitalMap" unique_id=458678643]
 script = ExtResource("12")
 hospital_map_path = NodePath("..")
 
-[node name="ToggleLabel" type="Label" parent="MapOverlay"]
-position = Vector2(10, 700)
+[node name="ToggleLabel" type="Label" parent="MapOverlay" unique_id=230875299]
+offset_left = 10.0
+offset_top = 700.0
+offset_right = 10.0
+offset_bottom = 700.0
 text = "按 M 切换地图"
-add_theme_color_override("font_color", Color(0, 0, 0, 0.6))
-add_theme_font_size_override("font_size", 14)

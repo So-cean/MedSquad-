@@ -35,10 +35,15 @@ func _ready() -> void:
 			cm_inst.name = "ConversationManager"
 			add_child(cm_inst)
 
-	# Spawn mock dialogue system as child
-	var mock := MockDialogueSystem.new()
-	mock.name = "MockDialogueSystem"
-	add_child(mock)
+	# TimelinePlayer (receives actions from backend LLM)
+	var tp_script = load("res://scripts/edmas/managers/timeline_player.gd")
+	if tp_script:
+		var tp = tp_script.new()
+		tp.name = "TimelinePlayer"
+		add_child(tp)
+		var bb = get_node_or_null("/root/BackendBridge")
+		if bb and bb.has_method("get_sim_client"):
+			tp.setup(bb.get_sim_client())
 
 	# Chinese font fallback is handled per-bubble in DialogueBubble._ready()
 
@@ -64,6 +69,7 @@ func unregister(npc: BaseNpc) -> void:
 func _process(_delta: float) -> void:
 	var camera := _get_camera()
 	if not camera:
+		# No camera yet — bubbles can't be positioned
 		return
 
 	# Assign / release bubbles based on NPC dialogue state
