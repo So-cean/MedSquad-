@@ -48,10 +48,10 @@ python -m http.server 8080
 
 ```
 Phase 1: 🤔 [蓝色文字] 思考内容 (逐字打字效果)
-              ↓  思考完成，暂停 0.5s
+			  ↓  思考完成，暂停 0.5s
 Phase 2: 🗣 [深色文字] 实际对话内容 (淡入)
-              ↓  停留 duration 秒后
-             气泡自动淡化消失 (0.4s)
+			  ↓  停留 duration 秒后
+			 气泡自动淡化消失 (0.4s)
 ```
 
 - 没有思考内容时，直接进入 Phase 2
@@ -72,13 +72,13 @@ Phase 2: 🗣 [深色文字] 实际对话内容 (淡入)
 
 ```
 NPC A ↔ NPC B 正在对话
-    ↓
+	↓
 NPC C 想找 A
-    ↓
+	↓
 A 检查优先级
  ├─ C > B → A 切换到 C (B 进入空闲)
  └─ C ≤ B → C 进入 A 的等待队列
-              A 结束后 → 检查队列 → 最高优先级出队
+			  A 结束后 → 检查队列 → 最高优先级出队
 ```
 
 - 两组不相干的对话可以同时进行（各自独立气泡）
@@ -167,13 +167,13 @@ A 检查优先级
   ├─ DialogueManager     气泡管理 + NPC注册
   ├─ TimeSystem          游戏内时间推进
   └─ ConversationManager  (DialogueManager 的子节点)
-                             对话配对 + 打断逻辑
+							 对话配对 + 打断逻辑
 
 场景层
   └─ BaseNpc (class_name)
-       ├─ 8方向行走动画
-       ├─ 对话接口 (speak / stop_speaking)
-       └─ 记忆存储 (MemoryStore)
+	   ├─ 8方向行走动画
+	   ├─ 对话接口 (speak / stop_speaking)
+	   └─ 记忆存储 (MemoryStore)
 
 数据层
   ├─ data/mock_flows.json    对话流

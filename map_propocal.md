@@ -973,22 +973,22 @@ Arrived at downstream care floor.
 
 ```python
 LOCATION_TO_MAP = {
-    "ED_ENTRANCE": "MAP_ED_CORE",
-    "TRIAGE": "MAP_ED_CORE",
-    "WAITING_AREA": "MAP_ED_CORE",
-    "DOCTOR": "MAP_ED_CORE",
-    "ED_RESUS": "MAP_ED_CORE",
+	"ED_ENTRANCE": "MAP_ED_CORE",
+	"TRIAGE": "MAP_ED_CORE",
+	"WAITING_AREA": "MAP_ED_CORE",
+	"DOCTOR": "MAP_ED_CORE",
+	"ED_RESUS": "MAP_ED_CORE",
 
-    "LAB": "MAP_DIAGNOSTICS",
-    "IMAGING": "MAP_DIAGNOSTICS",
-    "DIAGNOSTIC_WAITING": "MAP_DIAGNOSTICS",
-    "RESULT_REVIEW": "MAP_DIAGNOSTICS",
+	"LAB": "MAP_DIAGNOSTICS",
+	"IMAGING": "MAP_DIAGNOSTICS",
+	"DIAGNOSTIC_WAITING": "MAP_DIAGNOSTICS",
+	"RESULT_REVIEW": "MAP_DIAGNOSTICS",
 
-    "DISPOSITION": "MAP_DOWNSTREAM",
-    "ICU": "MAP_DOWNSTREAM",
-    "WARD": "MAP_DOWNSTREAM",
-    "ED_BOARDING": "MAP_DOWNSTREAM",
-    "DISCHARGE": "MAP_DOWNSTREAM"
+	"DISPOSITION": "MAP_DOWNSTREAM",
+	"ICU": "MAP_DOWNSTREAM",
+	"WARD": "MAP_DOWNSTREAM",
+	"ED_BOARDING": "MAP_DOWNSTREAM",
+	"DISCHARGE": "MAP_DOWNSTREAM"
 }
 ```
 
@@ -998,26 +998,26 @@ LOCATION_TO_MAP = {
 
 ```python
 LOCATION_TO_MARKER = {
-    "ED_ENTRANCE": "Marker_ED_Entrance",
-    "TRIAGE": "Marker_Triage",
-    "WAITING_AREA": "Marker_Waiting",
-    "DOCTOR": "Marker_Doctor",
-    "ED_RESUS": "Marker_ED_Resus",
+	"ED_ENTRANCE": "Marker_ED_Entrance",
+	"TRIAGE": "Marker_Triage",
+	"WAITING_AREA": "Marker_Waiting",
+	"DOCTOR": "Marker_Doctor",
+	"ED_RESUS": "Marker_ED_Resus",
 
-    "LAB": "Marker_Lab",
-    "IMAGING": "Marker_Imaging",
-    "DIAGNOSTIC_WAITING": "Marker_Diagnostic_Waiting",
-    "RESULT_REVIEW": "Marker_Result_Review",
+	"LAB": "Marker_Lab",
+	"IMAGING": "Marker_Imaging",
+	"DIAGNOSTIC_WAITING": "Marker_Diagnostic_Waiting",
+	"RESULT_REVIEW": "Marker_Result_Review",
 
-    "DISPOSITION": "Marker_Disposition",
-    "ICU": "Marker_ICU",
-    "WARD": "Marker_Ward",
-    "ED_BOARDING": "Marker_ED_Boarding",
-    "DISCHARGE": "Marker_Discharge",
+	"DISPOSITION": "Marker_Disposition",
+	"ICU": "Marker_ICU",
+	"WARD": "Marker_Ward",
+	"ED_BOARDING": "Marker_ED_Boarding",
+	"DISCHARGE": "Marker_Discharge",
 
-    "ELEVATOR_ED": "Marker_Elevator_ED",
-    "ELEVATOR_DIAGNOSTICS": "Marker_Elevator_Diagnostics",
-    "ELEVATOR_DOWNSTREAM": "Marker_Elevator_Downstream"
+	"ELEVATOR_ED": "Marker_Elevator_ED",
+	"ELEVATOR_DIAGNOSTICS": "Marker_Elevator_Diagnostics",
+	"ELEVATOR_DOWNSTREAM": "Marker_Elevator_Downstream"
 }
 ```
 
@@ -1305,4 +1305,3 @@ POST /api/godot/user_turn
 地图中的每个房间本质上是一个后端状态节点的视觉锚点。
 Godot 的任务是把后端状态变化变成可见的空间运动。
 ```
-
