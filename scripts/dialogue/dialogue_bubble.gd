@@ -31,6 +31,7 @@ const COLOR_THINK_BG := Color(0.92, 0.95, 0.98, 0.92)
 const TYPEWRITER_INTERVAL := 0.04
 const THINK_PAUSE := 0.5
 const CROSSFADE := 0.25
+const UTTERANCE_DISPLAY := 2.5  # seconds per utterance before auto-advance
 
 # ── Child references ──
 var _panel: Panel
@@ -50,6 +51,8 @@ var _needs_resize := false
 var _is_fading := false
 var _fade_tween: Tween = null
 var _in_think_phase := true
+var _utterance_queue: Array[String] = []
+var _utterance_idx: int = 0
 
 
 func _init() -> void:
@@ -131,7 +134,7 @@ func cancel_fade() -> void:
 	modulate = Color.WHITE
 
 
-## Display a dialogue entry.  Sequence: think typewriter → fade → dialogue.
+## Display a dialogue entry.  Sequence: think typewriter → utterances queue.
 func show_entry(entry: DialogueEntry) -> void:
 	if _is_fading:
 		cancel_fade()
@@ -141,7 +144,8 @@ func show_entry(entry: DialogueEntry) -> void:
 		return
 
 	_think_text = entry.think
-	var dialogue_text: String = entry.dialogue
+	_utterance_queue = entry.utterances.duplicate()
+	_utterance_idx = 0
 
 	# Reset
 	_think_pos = 0
@@ -154,15 +158,8 @@ func show_entry(entry: DialogueEntry) -> void:
 	_needs_resize = true
 
 	if _think_text.is_empty():
-		# No think → straight to dialogue
-		_in_think_phase = false
-		_icon.text = "🗣"
-		_icon.add_theme_font_size_override("font_size", FONT_SIZE)
-		_text_label.add_theme_color_override("default_color", COLOR_TEXT)
-		_text_label.text = dialogue_text
-		_think_bg.hide()
+		_no_think_show_dialogue()
 	else:
-		# Phase 1: show think in blue
 		_icon.text = "🤔"
 		_icon.add_theme_font_size_override("font_size", FONT_SIZE)
 		_text_label.add_theme_color_override("default_color", COLOR_THINK)
@@ -291,20 +288,41 @@ func _start_think_fadeout() -> void:
 	t.tween_callback(_show_dialogue)
 
 
+func _no_think_show_dialogue() -> void:
+	_in_think_phase = false
+	_icon.text = "🗣"
+	_icon.add_theme_font_size_override("font_size", FONT_SIZE)
+	_text_label.add_theme_color_override("default_color", COLOR_TEXT)
+	_think_bg.hide()
+	_play_utterance_queue()
+
+
 func _show_dialogue() -> void:
 	if not is_instance_valid(self):
 		return
-	var dialogue_text: String = ""
-	if _current_entry:
-		dialogue_text = _current_entry.dialogue
-
-	# Reset text area for dialogue
-	_text_label.text = ""
-	_text_label.add_theme_color_override("default_color", COLOR_TEXT)
+	_in_think_phase = false
 	_icon.text = "🗣"
+	_icon.add_theme_font_size_override("font_size", FONT_SIZE)
+	_text_label.add_theme_color_override("default_color", COLOR_TEXT)
 	_think_bg.hide()
+	_play_utterance_queue()
 
-	# Set dialogue text and fade in
-	_text_label.text = dialogue_text
+
+func _play_utterance_queue() -> void:
+	if not is_instance_valid(self):
+		return
+	if _utterance_idx >= _utterance_queue.size():
+		# Queue done, keep showing last text
+		return
+
+	_text_label.text = _utterance_queue[_utterance_idx]
+	_utterance_idx += 1
 	_content_row.modulate = Color.WHITE
 	_needs_resize = true
+
+	# Schedule next utterance
+	if _utterance_idx < _utterance_queue.size():
+		await get_tree().create_timer(UTTERANCE_DISPLAY).timeout
+		if not is_instance_valid(self):
+			return
+		_play_utterance_queue()

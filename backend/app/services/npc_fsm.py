@@ -121,14 +121,21 @@ class NPCFsm:
 {{
   "type": "speak|move_to|wait|use_device",
   "target": "目标NPC ID或location ID",
-  "dialogue": "你要说的话（如果是speak）",
+  "utterances": ["短句1", "短句2"],
   "position": {{"x": 数字, "y": 数字}},
   "duration": 数字（秒）
-}}"""
+}}
+
+注意：
+- utterances 里**每条不超过15个字**，一条只问一个问题
+- 如果需要问多个问题，就拆成多条 utterances
+- 例如：["哪里痛？", "多久了？", "发烧吗？"]
+- 严禁一条 utterance 包含多个问题或一大段话"""
 
     def build_dialogue_prompt(self, ctx: dict) -> str:
         patient = ctx.get("current_patient", {})
         history = self.memory[-6:] if len(self.memory) > 6 else self.memory
+        player_input = ctx.get("player_input", "")
         return f"""你是一名医院{self.display_name}，正在与患者对话。
 
 你的角色知识：
@@ -139,11 +146,15 @@ class NPCFsm:
 
 患者信息：{json.dumps(patient, ensure_ascii=False)}
 
+{"患者刚才说：" + player_input if player_input else ""}
+
 请输出：
 {{
   "think": "你的推理（RAG检索结果、临床表现分析、决策依据）",
-  "dialogue": "你对患者说的话"
-}}"""
+  "utterances": ["一句话回复，不超过50字"]
+}}
+
+注意：utterances里每条不超过15个字，一条只说一件事。"""
 
     def _parse_action(self, llm_text: str) -> dict:
         text = llm_text.strip()
@@ -153,9 +164,14 @@ class NPCFsm:
                 text = text[4:]
         text = text.strip()
         try:
-            return json.loads(text)
+            result = json.loads(text)
+            # Convert single dialogue to utterances
+            if "dialogue" in result and "utterances" not in result:
+                if isinstance(result["dialogue"], str):
+                    result["utterances"] = [result["dialogue"]]
+            return result
         except json.JSONDecodeError:
-            return {"type": "speak", "dialogue": text, "think": llm_text}
+            return {"type": "speak", "utterances": [text], "think": llm_text}
 
 
 class SimulationEngine:
