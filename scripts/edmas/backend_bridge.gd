@@ -12,7 +12,7 @@ const TIMEOUT := 8.0
 
 var _backend_dir := ""
 var _http: HTTPRequest = null
-var _proc_ref: Dictionary = {}  # {pid: int, process: int}
+# _proc_ref reserved for future process tracking
 var is_ready := false
 var sim_client: Node = null
 
@@ -58,7 +58,7 @@ func _start_backend() -> void:
 		args = ["-m", "app.services.backend_server"]
 
 	var output := []
-	var exit_code := OS.execute(cmd, args, output, false)
+	var _exit_code := OS.execute(cmd, args, output, false)
 	print("[BackendBridge] Starting backend...")
 	print("[BackendBridge] Waiting for server on port ", PORT, "...")
 

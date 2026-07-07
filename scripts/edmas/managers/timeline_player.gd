@@ -8,7 +8,6 @@ extends Node
 ##   wait     → Timer delay
 ##   use_device → (future)
 
-signal sequence_done()
 signal action_started(npc_id: String, type: String)
 
 var _queue: Array = []
