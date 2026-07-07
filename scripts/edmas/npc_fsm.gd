@@ -163,7 +163,7 @@ func _build_routing_prompt(n: Dictionary) -> String:
 
 
 func _build_dialogue_prompt(n: Dictionary, player_input: String) -> String:
-	var history := n.memory.slice(-6)
+	var history: Array = n.memory.slice(-6)
 	return ("你是一名医院" + n.display_name + "，正在与患者对话。\n\n"
 		+ "对话历史：" + JSON.stringify(history, "", false) + "\n\n"
 		+ "患者刚才说：" + player_input + "\n\n"
