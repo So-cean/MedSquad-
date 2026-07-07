@@ -10,7 +10,7 @@
 [ext_resource type="Script" path="res://scripts/edmas/npc_interaction_zone.gd" id="8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_elevator"]
-radius = 30.0
+radius = 50.0
 
 [node name="Main_EDMAS" type="Control"]
 script = ExtResource("1")
@@ -142,7 +142,7 @@ scale = Vector2(2.5, 2.5)
 enabled = false
 
 [node name="ElevatorZone" type="Area2D" parent="MapRoot"]
-position = Vector2(120, 150)
+position = Vector2(500, 480)
 script = ExtResource("7")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/ElevatorZone"]
