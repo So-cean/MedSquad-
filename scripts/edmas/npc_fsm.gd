@@ -83,7 +83,7 @@ func get_status() -> Dictionary:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _send_llm(npc_id: String, model: String, prompt: String) -> void:
-	var key := GITEE_KEYS[_key_idx % GITEE_KEYS.size()]
+	var key: String = GITEE_KEYS[_key_idx % GITEE_KEYS.size()]
 	_key_idx = (_key_idx + 1) % GITEE_KEYS.size()
 
 	var body := JSON.stringify({
