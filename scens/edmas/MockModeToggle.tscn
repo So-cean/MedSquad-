@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[node name="MockModeToggle" type="CheckBox"]
+text = "Mock Mode"
+button_pressed = true
+

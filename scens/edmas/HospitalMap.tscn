@@ -1,0 +1,78 @@
+[gd_scene load_steps=5 format=3 uid="uid://edmas_hospital_map"]
+
+[ext_resource type="Script" path="res://scripts/edmas/hospital_map_manager.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map1_norm.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map2_norm.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/maps/normalized/map3_norm.png" id="4"]
+
+[node name="HospitalMap" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Map_ED_Core" type="Sprite2D" parent="."]
+texture = ExtResource("2")
+visible = true
+centered = false
+position = Vector2(0, 0)
+
+[node name="Map_Diagnostics" type="Sprite2D" parent="."]
+texture = ExtResource("3")
+visible = false
+centered = false
+position = Vector2(0, 0)
+
+[node name="Map_Downstream" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+visible = false
+centered = false
+position = Vector2(0, 0)
+
+[node name="Marker_ED_Entrance" type="Marker2D" parent="."]
+position = Vector2(180, 210)
+
+[node name="Marker_Triage" type="Marker2D" parent="."]
+position = Vector2(310, 210)
+
+[node name="Marker_Waiting" type="Marker2D" parent="."]
+position = Vector2(430, 210)
+
+[node name="Marker_Doctor" type="Marker2D" parent="."]
+position = Vector2(560, 210)
+
+[node name="Marker_ED_Resus" type="Marker2D" parent="."]
+position = Vector2(690, 210)
+
+[node name="Marker_Lab" type="Marker2D" parent="."]
+position = Vector2(220, 240)
+
+[node name="Marker_Imaging" type="Marker2D" parent="."]
+position = Vector2(380, 240)
+
+[node name="Marker_Diagnostic_Waiting" type="Marker2D" parent="."]
+position = Vector2(540, 240)
+
+[node name="Marker_Result_Review" type="Marker2D" parent="."]
+position = Vector2(700, 240)
+
+[node name="Marker_Disposition" type="Marker2D" parent="."]
+position = Vector2(220, 260)
+
+[node name="Marker_ICU" type="Marker2D" parent="."]
+position = Vector2(380, 260)
+
+[node name="Marker_Ward" type="Marker2D" parent="."]
+position = Vector2(540, 260)
+
+[node name="Marker_ED_Boarding" type="Marker2D" parent="."]
+position = Vector2(700, 260)
+
+[node name="Marker_Discharge" type="Marker2D" parent="."]
+position = Vector2(860, 260)
+
+[node name="Marker_Elevator_ED" type="Marker2D" parent="."]
+position = Vector2(120, 120)
+
+[node name="Marker_Elevator_Diagnostics" type="Marker2D" parent="."]
+position = Vector2(120, 160)
+
+[node name="Marker_Elevator_Downstream" type="Marker2D" parent="."]
+position = Vector2(120, 200)

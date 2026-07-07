@@ -113,6 +113,3 @@ func _release_bubble(npc: BaseNpc) -> void:
 	var b: DialogueBubble = _slots[npc]
 	_slots.erase(npc)
 	b.fade_out()
-
-
-

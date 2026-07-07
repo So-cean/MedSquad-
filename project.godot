@@ -8,15 +8,11 @@
 
 config_version=5
 
-[rendering]
-
-textures/vram_compression/import_etc2_astc=true
-
 [application]
 
 config/name="EDMAS"
 config/description="Enter an interesting project description here!"
-run/main_scene="uid://dj5e7k2td4sek"
+run/main_scene="res://scens/edmas/Main_EDMAS.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.png"
 
@@ -24,3 +20,7 @@ config/icon="res://icon.png"
 
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 TimeSystem="*res://scripts/dialogue/time_system.gd"
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
