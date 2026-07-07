@@ -24,8 +24,7 @@ const MAP_SIZE := Vector2(1672.0, 941.0)
 @onready var talk_button: Button = $CanvasLayer/UI/DialoguePanel/VBox/HBox/TalkButton
 @onready var next_dialogue_button: Button = $CanvasLayer/UI/DialoguePanel/VBox/HBox/NextDialogueButton
 var _mock_provider = _DemoProvider.new()
-
-	var _agent_profiles = _AgentProfiles.new()
+var _agent_profiles = _AgentProfiles.new()
 var _use_mock_mode: bool = true
 var _active_patient_id: String = ""
 var _active_profile: Dictionary = {}
