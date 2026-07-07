@@ -5,6 +5,9 @@ const Config = preload("res://scripts/edmas/config.gd")
 @onready var map_ed_core: Sprite2D = $Map_ED_Core
 @onready var map_diagnostics: Sprite2D = $Map_Diagnostics
 @onready var map_downstream: Sprite2D = $Map_Downstream
+@onready var col_ed_core = $Collision_ED_Core
+@onready var col_diagnostics = $Collision_Diagnostics
+@onready var col_downstream = $Collision_Downstream
 
 const MAP_BY_LOCATION := Config.LOCATION_TO_MAP
 const MARKER_BY_LOCATION := Config.LOCATION_TO_MARKER
@@ -25,6 +28,9 @@ func show_map_for_location(location_name: String) -> void:
 	map_ed_core.visible = map_id == "MAP_ED_CORE"
 	map_diagnostics.visible = map_id == "MAP_DIAGNOSTICS"
 	map_downstream.visible = map_id == "MAP_DOWNSTREAM"
+	if col_ed_core: col_ed_core.visible = map_id == "MAP_ED_CORE"
+	if col_diagnostics: col_diagnostics.visible = map_id == "MAP_DIAGNOSTICS"
+	if col_downstream: col_downstream.visible = map_id == "MAP_DOWNSTREAM"
 	_current_map_id = map_id
 
 func get_map_id_for_location(location_name: String) -> String:

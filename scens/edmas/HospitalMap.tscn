@@ -4,6 +4,9 @@
 [ext_resource type="Texture2D" path="res://assets/maps/normalized/map1_norm.png" id="2"]
 [ext_resource type="Texture2D" path="res://assets/maps/normalized/map2_norm.png" id="3"]
 [ext_resource type="Texture2D" path="res://assets/maps/normalized/map3_norm.png" id="4"]
+[ext_resource type="PackedScene" path="res://assets/maps/collision/map1_collision.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://assets/maps/collision/map2_collision.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://assets/maps/collision/map3_collision.tscn" id="7"]
 
 [node name="HospitalMap" type="Node2D"]
 script = ExtResource("1")
@@ -25,6 +28,15 @@ texture = ExtResource("4")
 visible = false
 centered = false
 position = Vector2(0, 0)
+
+[node name="Collision_ED_Core" parent="." instance=ExtResource("5")]
+visible = true
+
+[node name="Collision_Diagnostics" parent="." instance=ExtResource("6")]
+visible = false
+
+[node name="Collision_Downstream" parent="." instance=ExtResource("7")]
+visible = false
 
 [node name="Marker_ED_Entrance" type="Marker2D" parent="."]
 position = Vector2(180, 210)
