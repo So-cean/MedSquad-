@@ -99,6 +99,13 @@ func get_all() -> Array:
 	return _nodes.duplicate()
 
 
+## Clear persisted memory for a fresh simulation run.
+func clear() -> void:
+	_nodes.clear()
+	_dirty = true
+	_save()
+
+
 ## Get memory as a formatted string for context prompts.
 func get_context_str(count: int = 5) -> String:
 	var recent: Array = get_recent(count)

@@ -477,6 +477,11 @@ func get_dialogue_entry() -> DialogueEntry:
 func get_memory() -> MemoryStore:
 	return _memory
 
+
+func reset_memory() -> void:
+	if _memory:
+		_memory.clear()
+
 ## Record a dialogue exchange to this NPC's memory.
 func record_dialogue(listener: String, think: String, dialogue: String, importance: int = 5) -> void:
 	if _memory:

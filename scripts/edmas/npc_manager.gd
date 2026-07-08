@@ -47,6 +47,7 @@ func register_npc(npc_id: String, npc: BaseNpc, role: String, knowledge: Array) 
 	_npcs[npc_id] = npc
 	_npc_to_id[npc] = npc_id
 	_npc_data[npc_id] = {"role": role, "knowledge": knowledge}
+	npc.reset_memory()
 	_ctx.register(npc_id, npc, role, knowledge)
 	npc_registered.emit(npc_id, npc)
 	if role == "patient":

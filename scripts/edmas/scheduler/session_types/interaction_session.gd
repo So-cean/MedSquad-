@@ -37,7 +37,7 @@ func _start() -> void:
 	professional_npc.stop_speaking()
 	patient_npc.face_toward(professional_npc.global_position)
 	professional_npc.face_toward(patient_npc.global_position)
-	_fire_llm(_patient_id)
+	_fire_llm(_professional_id)
 
 
 func _fire_llm(npc_id: String) -> void:

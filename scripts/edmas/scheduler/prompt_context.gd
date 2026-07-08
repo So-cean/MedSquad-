@@ -85,6 +85,7 @@ static func _build_triage_nurse_prompt(self_npc: BaseNpc, target_npc: BaseNpc, m
 		+ "已采集信息：%s\n" % _visible_patient_info(extras)
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
+		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，您哪里不舒服？症状多久了？”，不要诊断，不要安排去医生或离院。\n"
 		+ "目标：3-5轮内完成分诊。症状严重时 next_step.next_role=doctor，目标诊室 target_room=DOCTOR 或 ED_RESUS；轻症可 discharge。\n"
 		+ "UI display rule: each response may contain 1-3 short utterances when needed; include next-step guidance when clinically useful. The UI will show a compact preview and hide details behind ellipsis.\n"
 		+ "必须只返回 JSON：\n"
@@ -102,6 +103,7 @@ static func _build_doctor_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory:
 		+ "已采集信息/分诊记录：%s\n" % _visible_patient_info(extras)
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
+		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，我是接诊医生，请说一下哪里不舒服？”，不要诊断，不要直接离院。\n"
 		+ "问诊要短：先问病史/既往史/过敏，再决定处置。3-5轮内完成。\n"
 		+ "orders 白名单：ct_scan / lab_test / ecg。Step 4A 阶段无设备 session，若输出 orders，scheduler 会 warning 后 discharge。\n"
 		+ "UI display rule: each response may contain 1-3 short utterances when needed; include diagnosis, order, or next-step guidance when clinically useful. The UI will show a compact preview and hide details behind ellipsis.\n"
