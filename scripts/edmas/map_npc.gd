@@ -6,7 +6,7 @@ extends BaseNpc
 @export var npc_display_name: String = "NPC"
 @export var npc_frames_dir: String = ""
 @export var npc_walk_flip: Array[String] = []
-@export var can_wander: bool = false  # set true to enable random wandering
+@export var can_wander: bool = true  # idle NPCs wander slightly
 
 func get_frames_dir() -> String:
 	return npc_frames_dir

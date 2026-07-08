@@ -1,28 +1,40 @@
 extends Node
 
-## Global dialogue orchestrator.  Add as an autoload in project.godot.
+## Global dialogue orchestrator (autoload).
 ##
-## Owns a pooled set of DialogueBubble instances in a high-layer CanvasLayer.
-## Each frame it polls all registered BaseNpcs; those with non-empty
-## DialogueEntry get a bubble assigned and positioned above their head.
+## Owns: bubble pool + NPC hover card.
+## Each frame: polls NPCs for dialogue entries, positions bubbles.
+## Mouse hover: detects NPC under cursor, shows NpcHoverCard.
 
 const POOL_SIZE: int = 6
 
 var _layer: CanvasLayer
 var _bubble_pool: Array[DialogueBubble] = []
 var _npcs: Array[BaseNpc] = []
-
-# NPC → assigned bubble
 var _slots: Dictionary = {}
-
 var _bubbles_ready: bool = false
+var _hover_card: NpcHoverCard = null
+
 
 func _ready() -> void:
 	_layer = CanvasLayer.new()
 	_layer.layer = 100
 	add_child(_layer)
 
-	# Spawn ConversationManager as child
+	# Chinese font for all UI
+	var tex: FontFile = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
+	if tex:
+		var fv: FontVariation = FontVariation.new()
+		fv.base_font = tex
+		var dt: Theme = ThemeDB.get_default_theme()
+		dt.default_font = fv
+
+	# Hover card
+	_hover_card = NpcHoverCard.new()
+	_hover_card.name = "NpcHoverCard"
+	_layer.add_child(_hover_card)
+
+	# ConversationManager
 	var cm_script: GDScript = load("res://scripts/dialogue/conversation_manager.gd")
 	if cm_script:
 		var cm_inst: Node = cm_script.new()
@@ -30,10 +42,6 @@ func _ready() -> void:
 			cm_inst.name = "ConversationManager"
 			add_child(cm_inst)
 
-
-# ═══════════════════════════════════════════════════════════════════════
-#  NPC registration
-# ═══════════════════════════════════════════════════════════════════════
 
 func register(npc: BaseNpc) -> void:
 	if npc not in _npcs:
@@ -45,12 +53,7 @@ func unregister(npc: BaseNpc) -> void:
 	_release_bubble(npc)
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Frame update
-# ═══════════════════════════════════════════════════════════════════════
-
 func _process(_delta: float) -> void:
-	# Initialize bubble pool on first frame (after all _ready() calls have run)
 	if not _bubbles_ready:
 		_bubbles_ready = true
 		for i in POOL_SIZE:
@@ -65,32 +68,50 @@ func _process(_delta: float) -> void:
 	if not camera:
 		return
 
-	# Assign / release bubbles based on NPC dialogue state
+	# Bubble management
 	for npc in _npcs:
+		if not is_instance_valid(npc):
+			continue
 		var entry: DialogueEntry = npc.get_dialogue_entry()
 		if entry and not entry.is_empty():
 			_ensure_bubble(npc, entry)
 		else:
 			_release_bubble(npc)
 
-	# Position active bubbles above their NPC — avoid overlap
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var used_y_positions: Array = []  # track Y positions to avoid overlap
+	# Position bubbles — fixed offset per active bubble, no per-frame recalc
+	var active_count: int = 0
 	for npc in _slots:
 		var bubble: DialogueBubble = _slots[npc]
+		if not is_instance_valid(bubble):
+			_slots.erase(npc)
+			continue
 		var screen_pos: Vector2 = camera.get_canvas_transform() * npc.global_position
+		var vp_size: Vector2 = get_viewport().get_visible_rect().size
+		var cx: float = clamp(screen_pos.x, bubble.size.x * 0.5, vp_size.x - bubble.size.x * 0.5)
+		bubble.follow_screen_position(cx, screen_pos.y)
+		active_count += 1
 
-		# Clamp horizontally
-		var cx: float = clamp(screen_pos.x, bubble.size.x * 0.5, viewport_size.x - bubble.size.x * 0.5)
+	# Mouse hover detection
+	_handle_hover(camera)
 
-		# Stack vertically if multiple bubbles overlap
-		var by: float = screen_pos.y - 20.0
-		for used_y in used_y_positions:
-			if abs(by - used_y) < bubble.size.y + 10.0:
-				by -= bubble.size.y + 10.0  # shift up
-		used_y_positions.append(by)
 
-		bubble.follow_screen_position(cx, by)
+func _handle_hover(camera: Camera2D) -> void:
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	var world_pos: Vector2 = camera.get_canvas_transform().affine_inverse() * mouse_pos
+
+	var hovered_npc: BaseNpc = null
+	for npc in _npcs:
+		if not is_instance_valid(npc):
+			continue
+		# Check if mouse is near NPC (within 40px radius)
+		if npc.global_position.distance_to(world_pos) < 40.0:
+			hovered_npc = npc
+			break
+
+	if hovered_npc:
+		_hover_card.show_card(hovered_npc, mouse_pos)
+	else:
+		_hover_card.hide_card()
 
 
 func _get_camera() -> Camera2D:
@@ -102,28 +123,26 @@ func _ensure_bubble(npc: BaseNpc, entry: DialogueEntry) -> void:
 	if _slots.has(npc):
 		var b: DialogueBubble = _slots[npc]
 		if b._current_entry == entry:
-			# Auto-release if bubble is done
 			if b._phase == DialogueBubble.Phase.DONE or b._phase == DialogueBubble.Phase.FADING:
 				_release_bubble(npc)
 			return
 		b.show_entry(entry)
 		return
 
-	# Find a free bubble from the pool (skip fading ones)
 	for b in _bubble_pool:
 		if not b.is_available():
 			continue
+		var active: int = _slots.size()
+		b.set_offset_y(-active * 70.0)
 		b.show_entry(entry)
 		_slots[npc] = b
 		return
 
 
-## Returns the ConversationManager child node.
 func get_conversation_manager() -> Node:
 	return get_node_or_null("ConversationManager")
 
 
-## Returns the bubble assigned to an NPC, or null.
 func get_bubble_for_npc(npc: BaseNpc) -> DialogueBubble:
 	return _slots.get(npc) as DialogueBubble if _slots.has(npc) else null
 
@@ -133,5 +152,5 @@ func _release_bubble(npc: BaseNpc) -> void:
 		return
 	var b: DialogueBubble = _slots[npc]
 	_slots.erase(npc)
-	npc.stop_speaking()
+	b.set_offset_y(0.0)
 	b.fade_out()

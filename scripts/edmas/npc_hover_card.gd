@@ -13,7 +13,7 @@ const CARD_BG: Color = Color(0.08, 0.08, 0.12, 0.92)
 const CARD_BORDER: Color = Color(0.3, 0.5, 0.8, 0.8)
 const COLOR_TITLE: Color = Color(0.9, 0.9, 1.0)
 const COLOR_LABEL: Color = Color(0.5, 0.6, 0.7)
-COLOR_VALUE: Color = Color(0.85, 0.85, 0.9)
+const COLOR_VALUE: Color = Color(0.85, 0.85, 0.9)
 
 var _panel: Panel
 var _vbox: VBoxContainer

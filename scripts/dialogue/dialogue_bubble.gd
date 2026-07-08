@@ -3,13 +3,9 @@ extends Control
 
 ## Speech-bubble UI.
 ##
-## Two separate phases:
-##   THINK: 🤔 icon + blue text typewriter → pause → CLEAR
-##   UTTERANCE: 🗡 icon + black text typewriter → done → fade
-##
-## Think is optional (if empty, skip directly to utterance).
-## Max 3 lines visible, auto-scroll to bottom, scrollbar hidden.
-## Think and utterance never shown together.
+## THINK: 🤔 blue typewriter → pause → CLEAR
+## UTTERANCE: 🗡 black typewriter → done → fade
+## Max 3 lines, no scrollbar, auto-scroll bottom.
 
 signal done()
 
@@ -19,7 +15,7 @@ const MAX_WIDTH: int = 240
 const MIN_WIDTH: int = 120
 const VISIBLE_LINES: int = 3
 const LINE_HEIGHT: float = 18.0
-const MAX_CONTENT_HEIGHT: float = LINE_HEIGHT * VISIBLE_LINES
+const FIXED_CONTENT_HEIGHT: float = LINE_HEIGHT * VISIBLE_LINES  # 54px, never grows
 const PAD_H: int = 12
 const PAD_V: int = 8
 const TAIL_W: float = 12.0
@@ -35,7 +31,6 @@ const FADE_DURATION: float = 0.3
 const MIN_UTT_TIME: float = 2.0
 const AUTO_FADE_DELAY: float = 0.8
 
-# ── Node refs ──
 var _panel: Panel
 var _scroll: ScrollContainer
 var _label: RichTextLabel
@@ -44,7 +39,6 @@ var _think_bg: ColorRect
 var _typewriter: Timer
 var _cn_font: FontVariation = null
 
-# ── State ──
 var _phase: int = Phase.IDLE
 var _think_text: String = ""
 var _think_pos: int = 0
@@ -87,10 +81,6 @@ func _load_cn_font() -> void:
 		_cn_font.base_font = tex
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Public API
-# ═══════════════════════════════════════════════════════════════════════
-
 func is_available() -> bool:
 	return not visible and not _is_fading
 
@@ -128,7 +118,6 @@ func show_entry(entry: DialogueEntry) -> void:
 		hide()
 		return
 
-	# Full reset
 	_think_text = entry.think
 	_utterances = entry.utterances.duplicate()
 	if _utterances.is_empty() and not entry.dialogue.is_empty():
@@ -140,24 +129,28 @@ func show_entry(entry: DialogueEntry) -> void:
 	_utter_pos = 0
 	_utter_text = ""
 
-	if not _label or not _scroll:
-		push_error("DialogueBubble: UI not fully built")
+	if not _label:
+		push_error("DialogueBubble: UI not built")
 		return
 
-	# Clear everything
+	# Full clear
 	_label.clear()
 	_label.text = ""
 	visible = true
 	modulate = Color.WHITE
+
+	# Setup fixed size IMMEDIATELY — before any text
+	_setup_fixed_size()
 	_needs_resize = true
 
 	if _think_text.is_empty():
-		# No think — go directly to utterance
+		print("[Bubble] skip think, start utterance")
 		_start_utterance(my_seq)
 	else:
-		# THINK phase: 🤔 icon + blue text + think bg
+		print("[Bubble] think phase start: %d chars" % _think_text.length())
 		_phase = Phase.THINK
 		_icon.text = "🤔"
+		_icon.modulate = Color.WHITE
 		_label.add_theme_color_override("default_color", COLOR_THINK)
 		_think_bg.visible = true
 		_think_bg.modulate = Color.WHITE
@@ -174,7 +167,7 @@ func set_offset_y(y: float) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  UI Build
+#  UI Build — fixed 3-line window
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
@@ -190,34 +183,27 @@ func _build_ui() -> void:
 	style.corner_radius_bottom_right = 8
 	style.shadow_size = 4
 	style.shadow_color = Color(0, 0, 0, 0.15)
-	style.content_margin_left = 4.0
-	style.content_margin_right = 4.0
-	style.content_margin_top = 4.0
-	style.content_margin_bottom = 4.0
 	_panel.add_theme_stylebox_override("panel", style)
 
-	# Think background (only visible during THINK phase)
 	_think_bg = ColorRect.new()
 	_think_bg.color = COLOR_THINK_BG
 	_think_bg.mouse_filter = MOUSE_FILTER_IGNORE
 	_think_bg.visible = false
 	_panel.add_child(_think_bg)
 
-	# ScrollContainer — FIXED height = MAX_CONTENT_HEIGHT (3 lines)
+	# ScrollContainer — size is FIXED to FIXED_CONTENT_HEIGHT, never grows
 	_scroll = ScrollContainer.new()
 	_scroll.mouse_filter = MOUSE_FILTER_IGNORE
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED  # no scroll bar at all
 	_panel.add_child(_scroll)
 
-	# HBox: icon + label
 	var row: HBoxContainer = HBoxContainer.new()
 	row.mouse_filter = MOUSE_FILTER_IGNORE
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(row)
 
 	_icon = Label.new()
-	_icon.text = "🤔"
 	_icon.mouse_filter = MOUSE_FILTER_IGNORE
 	_icon.custom_minimum_size = Vector2(20, 0)
 	if _cn_font:
@@ -226,47 +212,46 @@ func _build_ui() -> void:
 
 	_label = RichTextLabel.new()
 	_label.mouse_filter = MOUSE_FILTER_IGNORE
-	_label.fit_content = false  # DON'T auto-grow — ScrollContainer clips
+	_label.fit_content = false  # CRITICAL: don't auto-grow
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.scroll_following = true
 	_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_label.add_theme_color_override("default_color", COLOR_THINK)
-	_label.custom_minimum_size = Vector2(MAX_WIDTH - PAD_H - 24, LINE_HEIGHT)
+	# Fixed size: width = MAX_WIDTH - icon - padding, height = FIXED_CONTENT_HEIGHT
+	_label.custom_minimum_size = Vector2(MAX_WIDTH - PAD_H - 24, FIXED_CONTENT_HEIGHT)
+	_label.size = Vector2(MAX_WIDTH - PAD_H - 24, FIXED_CONTENT_HEIGHT)
 	_label.bbcode_enabled = true
 	if _cn_font:
 		_label.add_theme_font_override("normal_font", _cn_font)
 	row.add_child(_label)
 
 
-func _reflow() -> void:
-	if not _label:
-		return
-	# Get content size
-	var content_size: Vector2 = _label.get_combined_minimum_size()
-	var row_size: Vector2 = _label.get_parent().get_combined_minimum_size() if _label.get_parent() else content_size
-	var bw: float = clamp(row_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
-	# Fixed visible height = MAX_CONTENT_HEIGHT (3 lines)
-	var visible_h: float = minf(row_size.y, MAX_CONTENT_HEIGHT)
-	var bh: float = visible_h + PAD_V + TAIL_H
+## Setup fixed panel/scroll/label sizes. These NEVER change regardless of content.
+func _setup_fixed_size() -> void:
+	var bw: float = MAX_WIDTH
+	var bh: float = FIXED_CONTENT_HEIGHT + PAD_V + TAIL_H  # 54 + 8 + 7 = 69px
 
 	size = Vector2(bw, bh)
-	var panel_h: float = bh - TAIL_H
+	var panel_h: float = bh - TAIL_H  # 62px
 	if _panel:
 		_panel.size = Vector2(bw, panel_h)
 	if _think_bg:
 		_think_bg.position = Vector2.ZERO
-		_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
+		_think_bg.size = Vector2(bw, panel_h)
 	if _scroll:
 		_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
-		# FIXED height = MAX_CONTENT_HEIGHT, clips overflow
-		_scroll.size = Vector2(bw - PAD_H, minf(row_size.y, MAX_CONTENT_HEIGHT))
+		_scroll.size = Vector2(bw - PAD_H, FIXED_CONTENT_HEIGHT)  # FIXED 54px
+	# Label is fixed height too — overflow is clipped by ScrollContainer
+	_label.size = Vector2(MAX_WIDTH - PAD_H - 24, FIXED_CONTENT_HEIGHT)
 
-	# Hide scrollbar, auto-scroll to bottom
+	queue_redraw()
+
+
+func _reflow() -> void:
+	# Size is FIXED — just update scrollbar position
 	var sb: VScrollBar = _scroll.get_v_scroll_bar()
 	if sb:
-		sb.modulate = Color(0, 0, 0, 0)
+		sb.modulate = Color(0, 0, 0, 0)  # invisible
 		_scroll.scroll_vertical = int(sb.max_value)
-
 	queue_redraw()
 
 
@@ -287,10 +272,14 @@ func _process(_delta: float) -> void:
 	if _needs_resize:
 		_needs_resize = false
 		_reflow()
+	# Auto-scroll to bottom every frame (shows last 3 lines)
+	var sb: VScrollBar = _scroll.get_v_scroll_bar() if _scroll else null
+	if sb and sb.max_value > 0:
+		_scroll.scroll_vertical = int(sb.max_value)
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Phase: THINK (blue typewriter) → pause → CLEAR → UTTERANCE (black)
+#  Typewriter phases
 # ═══════════════════════════════════════════════════════════════════════
 
 func _on_tick() -> void:
@@ -315,11 +304,12 @@ func _on_tick() -> void:
 
 
 func _end_think_phase(my_seq: int) -> void:
+	print("[Bubble] think done, transitioning to utterance")
 	_phase = Phase.THINK_PAUSE
 	await get_tree().create_timer(THINK_PAUSE).timeout
 	if my_seq != _seq or not is_instance_valid(self):
 		return
-	# CLEAR think text, hide think bg, switch to utterance
+	# CLEAR think text completely
 	_label.text = ""
 	_think_bg.visible = false
 	_icon.text = "🗣"
@@ -328,16 +318,13 @@ func _end_think_phase(my_seq: int) -> void:
 	_start_utterance(my_seq)
 
 
-# ═══════════════════════════════════════════════════════════════════════
-#  Phase: UTTERANCE (black typewriter, one at a time)
-# ═══════════════════════════════════════════════════════════════════════
-
 func _start_utterance(my_seq: int) -> void:
 	if my_seq >= 0 and my_seq != _seq:
 		return
 	if not is_instance_valid(self):
 		return
 	if _utter_idx >= _utterances.size():
+		print("[Bubble] all utterances done, fading")
 		_phase = Phase.DONE
 		done.emit()
 		_auto_fade_out()
@@ -347,6 +334,7 @@ func _start_utterance(my_seq: int) -> void:
 	_utter_pos = 0
 	_phase = Phase.UTTERANCE
 	_label.text = ""
+	print("[Bubble] utterance %d/%d: %d chars" % [_utter_idx + 1, _utterances.size(), _utter_text.length()])
 	_typewriter.start(TYPEWRITER_INTERVAL)
 
 
@@ -361,6 +349,7 @@ func _utterance_display_done(my_seq: int) -> void:
 	if my_seq != _seq or not is_instance_valid(self):
 		return
 	if _utter_idx >= _utterances.size():
+		print("[Bubble] all utterances done, fading")
 		_phase = Phase.DONE
 		done.emit()
 		_auto_fade_out()
