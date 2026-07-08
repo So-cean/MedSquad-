@@ -26,6 +26,10 @@ MapSystem="*res://scripts/edmas/map_system.gd"
 ResourceRegistry="*res://scripts/edmas/world/resource_registry.gd"
 Scheduler="*res://scripts/edmas/scheduler/scheduler.gd"
 
+[internationalization]
+
+locale/include_text_server_data=true
+
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true

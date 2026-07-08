@@ -212,7 +212,8 @@ func _build_ui() -> void:
 	_label = RichTextLabel.new()
 	_label.mouse_filter = MOUSE_FILTER_IGNORE
 	_label.fit_content = true  # grows with content
-	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label.language = "zh"  # Enable ICU CJK line breaking
+	_label.autowrap_mode = TextServer.AUTOWRAP_WORD  # WORD not WORD_SMART for CJK
 	_label.scroll_following = true
 	_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_label.add_theme_color_override("default_color", COLOR_THINK)

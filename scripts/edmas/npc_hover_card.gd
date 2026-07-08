@@ -85,8 +85,8 @@ func _build_ui() -> void:
 
 		var val: Label = _make_label(COLOR_VALUE, CARD_FONT_SIZE)
 		val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		# No autowrap — Chinese has no spaces, autowrap breaks per-character
-		val.autowrap_mode = TextServer.AUTOWRAP_OFF
+		val.language = "zh"  # Enable ICU CJK line breaking
+		val.autowrap_mode = TextServer.AUTOWRAP_WORD  # WORD not WORD_SMART for CJK
 		row.add_child(val)
 
 		_vbox.add_child(row)
