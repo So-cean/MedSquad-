@@ -228,9 +228,10 @@ func _physics_process(delta: float) -> void:
 	if _is_walking and _nav_agent:
 		_nav_step()
 		_update_anim()
+		_separate_from_npcs()
 		return
 
-	# NPC不做物理碰撞 — 不调move_and_slide
+	# NPC不做墙碰撞 — 用position直接移动
 	_timer -= delta
 
 	match _state:
@@ -238,9 +239,14 @@ func _physics_process(delta: float) -> void:
 			if _timer <= 0.0:
 				_start_move()
 		1:
+			velocity = _dirs[_dir_idx] * speed
+			var d: float = get_physics_process_delta_time()
+			global_position += velocity * d
 			if _timer <= 0.0:
 				_start_idle()
 
+	# Soft collision: push away from other NPCs
+	_separate_from_npcs()
 	_update_anim()
 
 
@@ -454,6 +460,28 @@ func _start_move() -> void:
 
 func _pick_timer() -> void:
 	_timer = randf_range(idle_min, idle_max)
+
+
+## Soft collision: push away from nearby NPCs so they don't overlap.
+## Uses simple distance check, no physics body needed.
+func _separate_from_npcs() -> void:
+	var push_radius: float = 35.0  # minimum distance between NPCs
+	var push_strength: float = 200.0  # pixels/sec push force
+	var delta: float = get_physics_process_delta_time()
+	var group_npcs: Array = get_tree().get_nodes_in_group("npcs")
+	for other in group_npcs:
+		if other == self or not other is BaseNpc:
+			continue
+		if not is_instance_valid(other):
+			continue
+		var diff: Vector2 = global_position - other.global_position
+		var dist: float = diff.length()
+		if dist < push_radius and dist > 0.1:
+			var push: Vector2 = diff.normalized() * push_strength * delta
+			global_position += push
+		elif dist <= 0.1:
+			# Exactly overlapping — push in random direction
+			global_position += Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized() * push_strength * delta
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -22,8 +22,11 @@ func _physics_process(delta: float) -> void:
 	if _is_walking and _nav_agent:
 		_nav_step()
 		_update_anim()
+		_separate_from_npcs()
 		return
-	# Optional wandering
+	# Wander
 	if can_wander:
 		super._physics_process(delta)
-	# else: stationary — no movement, no collision
+	else:
+		_separate_from_npcs()
+		_update_anim()
