@@ -1,15 +1,13 @@
 class_name NpcHoverCard
 extends Control
 
-## Floating card that appears when mouse hovers over an NPC.
-## Shows: name, role, state, location, brief status.
-##
-## Managed by NpcHoverSystem (autoload). Not instantiated directly.
+## Floating card on mouse hover over NPC.
+## Dark background, blue border, wraps all info.
 
 const CARD_WIDTH: int = 200
 const CARD_PAD: int = 10
 const CARD_FONT_SIZE: int = 11
-const CARD_BG: Color = Color(0.05, 0.05, 0.1, 0.95)
+const CARD_BG: Color = Color(0.06, 0.06, 0.12, 0.95)
 const CARD_BORDER: Color = Color(0.4, 0.6, 1.0, 0.9)
 const COLOR_TITLE: Color = Color(1.0, 1.0, 1.0)
 const COLOR_LABEL: Color = Color(0.55, 0.65, 0.8)
@@ -18,25 +16,29 @@ const COLOR_VALUE: Color = Color(0.95, 0.95, 1.0)
 var _panel: Panel
 var _vbox: VBoxContainer
 var _title_label: Label
-var _info_labels: Dictionary = {}  # key → Label
+var _info_labels: Dictionary = {}
+var _cn_font: FontVariation = null
 
 
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
+	_load_font()
 	_build_ui()
 	hide()
 
 
-func _build_ui() -> void:
-	# Load Chinese font
+func _load_font() -> void:
 	var tex: FontFile = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
-	var cn_font: FontVariation = null
 	if tex:
-		cn_font = FontVariation.new()
-		cn_font.base_font = tex
+		_cn_font = FontVariation.new()
+		_cn_font.base_font = tex
 
+
+func _build_ui() -> void:
+	# Panel — the visible background box
 	_panel = Panel.new()
 	_panel.mouse_filter = MOUSE_FILTER_IGNORE
+	_panel.anchors_preset = Control.PRESET_FULL_RECT
 	add_child(_panel)
 
 	var style: StyleBoxFlat = StyleBoxFlat.new()
@@ -58,49 +60,50 @@ func _build_ui() -> void:
 	style.content_margin_bottom = CARD_PAD
 	_panel.add_theme_stylebox_override("panel", style)
 
+	# VBox holds all content
 	_vbox = VBoxContainer.new()
 	_vbox.mouse_filter = MOUSE_FILTER_IGNORE
+	_vbox.anchors_preset = Control.PRESET_FULL_RECT
 	_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_vbox.add_theme_constant_override("separation", 2)
 	_panel.add_child(_vbox)
 
-	# Title (NPC name)
-	_title_label = Label.new()
-	_title_label.mouse_filter = MOUSE_FILTER_IGNORE
-	_title_label.add_theme_font_size_override("font_size", CARD_FONT_SIZE + 1)
-	_title_label.add_theme_color_override("font_color", COLOR_TITLE)
-	if cn_font:
-		_title_label.add_theme_font_override("font", cn_font)
+	# Title
+	_title_label = _make_label(COLOR_TITLE, CARD_FONT_SIZE + 2)
 	_vbox.add_child(_title_label)
 
 	# Info rows
 	for key in ["role", "state", "location", "status"]:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.mouse_filter = MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", 4)
 
-		var lbl: Label = Label.new()
-		lbl.mouse_filter = MOUSE_FILTER_IGNORE
-		lbl.text = key + ": "
-		lbl.add_theme_font_size_override("font_size", CARD_FONT_SIZE)
-		lbl.add_theme_color_override("font_color", COLOR_LABEL)
-		if cn_font:
-			lbl.add_theme_font_override("font", cn_font)
+		var lbl: Label = _make_label(COLOR_LABEL, CARD_FONT_SIZE)
+		lbl.text = key + ":"
 		row.add_child(lbl)
 
-		var val: Label = Label.new()
-		val.mouse_filter = MOUSE_FILTER_IGNORE
-		val.add_theme_font_size_override("font_size", CARD_FONT_SIZE)
-		val.add_theme_color_override("font_color", COLOR_VALUE)
+		var val: Label = _make_label(COLOR_VALUE, CARD_FONT_SIZE)
 		val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if cn_font:
-			val.add_theme_font_override("font", cn_font)
 		row.add_child(val)
 
 		_vbox.add_child(row)
 		_info_labels[key] = val
 
+	# Set fixed width
+	custom_minimum_size = Vector2(CARD_WIDTH, 0)
 	_panel.custom_minimum_size = Vector2(CARD_WIDTH, 0)
-	_panel.size = Vector2(CARD_WIDTH, 100)
+
+
+func _make_label(color: Color, font_size: int) -> Label:
+	var l: Label = Label.new()
+	l.mouse_filter = MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("font_size", font_size)
+	l.add_theme_color_override("font_color", color)
+	if _cn_font:
+		l.add_theme_font_override("font", _cn_font)
+	return l
 
 
 func show_card(npc: BaseNpc, mouse_pos: Vector2) -> void:
@@ -112,11 +115,8 @@ func show_card(npc: BaseNpc, mouse_pos: Vector2) -> void:
 
 	# Role
 	var role: String = "未知"
-	var npc_data: Dictionary = {}
-	if NpcManager and NpcManager.has_method("_npc_data"):
-		npc_data = NpcManager._npc_data.get(NpcManager.get_npc_id(npc), {})
-		role = npc_data.get("role", "未知")
-	# Map role to Chinese
+	if NpcManager:
+		role = NpcManager.get_role(NpcManager.get_npc_id(npc))
 	match role:
 		"nurse": role = "护士"
 		"doctor": role = "医生"
@@ -132,7 +132,7 @@ func show_card(npc: BaseNpc, mouse_pos: Vector2) -> void:
 		loc = HospitalMapData.get_location_name(npc.global_position)
 	_info_labels["location"].text = loc if not loc.is_empty() else "未知"
 
-	# Status — what they're doing
+	# Status
 	var status: String = "待机"
 	if npc.is_walking():
 		status = "移动中"
@@ -140,13 +140,19 @@ func show_card(npc: BaseNpc, mouse_pos: Vector2) -> void:
 		status = "对话中"
 	_info_labels["status"].text = status
 
-	# Position card near mouse
-	size = _panel.get_combined_minimum_size() + Vector2(CARD_PAD * 2, CARD_PAD * 2)
-	var vp_size: Vector2 = get_viewport().get_visible_rect().size
-	position.x = clamp(mouse_pos.x + 15, 0, vp_size.x - size.x)
-	position.y = clamp(mouse_pos.y + 15, 0, vp_size.y - size.y)
+	# Resize panel to fit content
+	await get_tree().process_frame  # wait one frame for layout
+	var content_size: Vector2 = _vbox.get_combined_minimum_size()
+	var card_w: float = CARD_WIDTH
+	var card_h: float = content_size.y + CARD_PAD * 2
+	size = Vector2(card_w, card_h)
+	_panel.size = Vector2(card_w, card_h)
 
-	_panel.size = size
+	# Position near mouse, clamped to viewport
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	position.x = clamp(mouse_pos.x + 15, 0, vp_size.x - card_w)
+	position.y = clamp(mouse_pos.y + 15, 0, vp_size.y - card_h)
+
 	visible = true
 
 
