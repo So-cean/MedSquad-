@@ -71,9 +71,9 @@ static func _build_patient_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
 		+ instruction + "\n"
-		+ "UI display rule: return 1-3 short utterances when needed; include next-step guidance when clinically useful. The UI will show a compact preview and hide details behind ellipsis.\n"
 		+ "必须只返回 JSON：\n"
-		+ '{"think":"30字内","utterances":["10-40字的大白话回答"]}'
+		+ '{"think":"","utterances":["10-20字大白话"]}\n'
+		+ 'think可选：不填或填内心感受/回想的信息，不要重复已知事实。'
 	)
 
 
@@ -87,11 +87,9 @@ static func _build_triage_nurse_prompt(self_npc: BaseNpc, target_npc: BaseNpc, m
 		+ build_resource_snapshot() + "\n"
 		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，您哪里不舒服？症状多久了？”，不要诊断，不要安排去医生或离院。\n"
 		+ "目标：3-5轮内完成分诊。症状严重时 next_step.next_role=doctor，目标诊室 target_room=DOCTOR 或 ED_RESUS；轻症可 discharge。\n"
-		+ "UI display rule: each response may contain 1-3 short utterances when needed; include next-step guidance when clinically useful. The UI will show a compact preview and hide details behind ellipsis.\n"
 		+ "必须只返回 JSON：\n"
-		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["对患者说1-3句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
-		+ "分诊结束时返回：\n"
-		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["请去医生那里进一步评估"],"conversation_done":true}],"next_step":{"next_role":"doctor","target_room":"DOCTOR","reason":"需要医生评估","orders":[]}}' % patient_id
+		+ '{"think":"","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
+		+ 'think可选：不填或填分诊推理/资源判断，不要重复已知事实。'
 	)
 
 
@@ -106,9 +104,7 @@ static func _build_doctor_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory:
 		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，我是接诊医生，请说一下哪里不舒服？”，不要诊断，不要直接离院。\n"
 		+ "问诊要短：先问病史/既往史/过敏，再决定处置。3-5轮内完成。\n"
 		+ "orders 白名单：ct_scan / lab_test / ecg。Step 4A 阶段无设备 session，若输出 orders，scheduler 会 warning 后 discharge。\n"
-		+ "UI display rule: each response may contain 1-3 short utterances when needed; include diagnosis, order, or next-step guidance when clinically useful. The UI will show a compact preview and hide details behind ellipsis.\n"
 		+ "必须只返回 JSON：\n"
-		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["对患者说1-3句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
-		+ "问诊完成时返回：\n"
-		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["目前可以离院，若加重随诊"],"conversation_done":true}],"next_step":{"next_role":"discharge","target_room":"DISCHARGE","orders":[],"reason":"完成问诊"}}' % patient_id
+		+ '{"think":"","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
+		+ 'think可选：不填或填诊断推理，不要重复已知事实。'
 	)

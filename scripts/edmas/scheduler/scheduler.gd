@@ -131,8 +131,13 @@ func _send_patient_to_waiting(session: Session) -> void:
 	var patient_id: String = session.get_patient_id()
 	var patient: BaseNpc = NpcManager.get_npc(patient_id)
 	if patient:
-		patient.set_state(BaseNpc.NpcState.GOING_TO_ROOM, "WAITING_AREA")
-		patient.speak(DialogueEntry.new(patient.get_npc_name(), "", "", "", ["我先去等着。"]))
+		# Walk to near triage area (not far waiting area) — patient waits in line
+		var triage_pos: Vector2 = HospitalMapData.get_location("TRIAGE")
+		# Offset based on queue position so they don't stack
+		var queue_pos: int = _pending_sessions.size()
+		var wait_pos: Vector2 = triage_pos + Vector2(-80 - queue_pos * 50, 80)
+		patient.walk_to_pos(wait_pos)
+		# Don't speak — they just walk over and wait quietly
 
 
 func _check_all_discharged() -> void:
