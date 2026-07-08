@@ -1,0 +1,29 @@
+project.godot
+  s_ace47056ef9dd1::t_bc3f2fca86704a 26
+scripts/edmas/world/medical_resource.gd
+  s_ace47056ef9dd1::t_1f65810db45dbb 1-101
+scripts/edmas/world/resource_registry.gd
+  s_ace47056ef9dd1::t_d433ae715b5d49 110,120,124
+  s_ace47056ef9dd1::t_2a6e3d0146f9fd 152,160
+  s_ace47056ef9dd1::t_e4552bc673997c 100-101
+  s_ace47056ef9dd1::t_4475851d0b7b52 1-60,62-73,76,78-79,88-89,91-93,98-99,102,104-109,111-119,121-123,125-151,153-159,161-174
+  s_ace47056ef9dd1::t_eec72224d3c7b2 61
+  s_ace47056ef9dd1::t_33cf87753ee760 103
+  s_ace47056ef9dd1::t_ccc1397b1fe52e 74-75,77,80-87,90,94-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.26-trip",
+  "base_commit_sha": "084171590c8a76cc63aa849154ed99ee5a36621a",
+  "prompts": {},
+  "sessions": {
+    "s_ace47056ef9dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2756659f-5119-4758-96a4-aec8ddc9a509",
+        "model": "arn:aws:bedrock:us-west-2:133197901387:application-inference-profile/ypvzpmevzxdl"
+      },
+      "human_author": "Junlei Wu （吴隽蕾） <wujunlei@trip.com>"
+    }
+  }
+}
