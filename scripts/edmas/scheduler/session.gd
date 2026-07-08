@@ -214,9 +214,11 @@ func _start_safety_timer() -> void:
 
 
 func _wait_for_arrival(npc: BaseNpc, timeout: float) -> void:
-	var elapsed: float = 0.0
-	while is_instance_valid(npc) and npc.is_walking() and elapsed < timeout:
+	var start_msec: float = float(Time.get_ticks_msec())
+	while is_instance_valid(npc) and npc.is_walking():
+		var elapsed_sec: float = (float(Time.get_ticks_msec()) - start_msec) / 1000.0
+		if elapsed_sec >= timeout:
+			break
 		await NpcManager.get_tree().process_frame
-		elapsed += NpcManager.get_process_delta_time()
 	if is_instance_valid(npc) and npc.is_walking():
 		npc._is_walking = false

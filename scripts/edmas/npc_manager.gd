@@ -168,10 +168,12 @@ func discharge(npc_id: String) -> void:
 
 
 func _finish_discharge_after_exit(npc_id: String, npc: BaseNpc) -> void:
-	var elapsed: float = 0.0
-	while is_instance_valid(npc) and npc.is_walking() and elapsed < 20.0:
+	var start_msec: float = float(Time.get_ticks_msec())
+	while is_instance_valid(npc) and npc.is_walking():
+		var elapsed_sec: float = (float(Time.get_ticks_msec()) - start_msec) / 1000.0
+		if elapsed_sec >= 20.0:
+			break
 		await get_tree().process_frame
-		elapsed += get_process_delta_time()
 	if not _npcs.has(npc_id):
 		_discharging_patients.erase(npc_id)
 		return

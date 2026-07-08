@@ -309,7 +309,7 @@ func _nav_step() -> void:
 	var next_pos: Vector2 = _nav_agent.get_next_path_position()
 	var new_vel: Vector2 = global_position.direction_to(next_pos) * speed
 	# NPC不做物理碰撞，直接移动position（导航路径已绕开墙体）
-	var delta: float = get_process_delta_time()
+	var delta: float = get_physics_process_delta_time()
 	global_position += new_vel * delta
 	_update_walk_dir(new_vel)
 
