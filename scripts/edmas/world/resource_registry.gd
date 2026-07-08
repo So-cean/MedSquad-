@@ -50,6 +50,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_sync_staff_from_npc_manager()
+	var mgr: Node = get_node_or_null("/root/NpcManager")
+	if mgr and not mgr.npc_registered.is_connected(_on_npc_registered):
+		mgr.npc_registered.connect(_on_npc_registered)
 	print("[ResourceRegistry] Ready with %d resources:" % _resources.size())
 	print_status()
 
@@ -105,6 +108,16 @@ func _register_staff(npc_id: String, npc: Object, role: String) -> void:
 	_resources[res_id] = res
 	_npc_to_resource[npc_id] = res_id
 	resource_registered.emit(res)
+	print("[ResourceRegistry] Registered staff %s role=%s" % [res_id, role])
+
+
+func _on_npc_registered(npc_id: String, npc: BaseNpc) -> void:
+	var mgr: Node = get_node_or_null("/root/NpcManager")
+	if not mgr or not mgr.has_method("get_role"):
+		return
+	var role: String = mgr.get_role(npc_id)
+	if role == "nurse" or role == "doctor":
+		_register_staff(npc_id, npc, role)
 
 
 func _wire_resource_signals(res: MedicalResource) -> void:

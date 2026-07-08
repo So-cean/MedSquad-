@@ -157,6 +157,8 @@ func _build_frames() -> void:
 		var path: String = frames_dir + ("idle_down.png" if d == "down" else "idle_%s.png" % d)
 		var tex: Texture2D = load(path) as Texture2D
 		if not tex:
+			tex = _load_legacy_doctor_idle(frames_dir, d)
+		if not tex:
 			push_error("BaseNpc (%s): missing idle frame: %s" % [npc_tag, path])
 			return
 		idle_frames[d] = tex
@@ -168,6 +170,8 @@ func _build_frames() -> void:
 		var path_a: String = frames_dir + "walk_%s_a.png" % d
 		var tex_a: Texture2D = load(path_a) as Texture2D
 		if not tex_a:
+			tex_a = _load_legacy_doctor_walk(frames_dir, d, "a")
+		if not tex_a:
 			push_error("BaseNpc (%s): missing walk frame: %s" % [npc_tag, path_a])
 			return
 
@@ -178,6 +182,8 @@ func _build_frames() -> void:
 			# UP / DOWN: walk_a → walk_b (alternating leg-forward poses)
 			var path_b: String = frames_dir + "walk_%s_b.png" % d
 			var tex_b: Texture2D = load(path_b) as Texture2D
+			if not tex_b:
+				tex_b = _load_legacy_doctor_walk(frames_dir, d, "b")
 			if not tex_b:
 				push_error("BaseNpc (%s): missing flipped walk frame: %s" % [npc_tag, path_b])
 				return
@@ -191,6 +197,26 @@ func _build_frames() -> void:
 		sf.set_animation_speed(anim_name, 6.0)
 
 	_anim.sprite_frames = sf
+
+
+func _load_legacy_doctor_idle(frames_dir: String, dir_name: String) -> Texture2D:
+	var file_name: String = "side_idle.png"
+	if dir_name == "down":
+		file_name = "down_idle.png"
+	elif dir_name == "up":
+		file_name = "up_idle.png"
+	return load(frames_dir + file_name) as Texture2D
+
+
+func _load_legacy_doctor_walk(frames_dir: String, dir_name: String, phase: String) -> Texture2D:
+	var file_name: String = "side_walk_r.png"
+	if dir_name == "down":
+		file_name = "down_walk_b.png" if phase == "b" else "down_walk_a.png"
+	elif dir_name == "up":
+		file_name = "up_walk_b.png" if phase == "b" else "up_walk_a.png"
+	elif dir_name in ["left", "up_left", "down_left"]:
+		file_name = "side_walk_l.png"
+	return load(frames_dir + file_name) as Texture2D
 
 
 # ═══════════════════════════════════════════════════════════════════════
