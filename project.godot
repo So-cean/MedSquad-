@@ -24,6 +24,7 @@ NpcManager="*res://scripts/edmas/npc_manager.gd"
 HospitalMapData="*res://scripts/edmas/hospital_map_data.gd"
 MapSystem="*res://scripts/edmas/map_system.gd"
 ResourceRegistry="*res://scripts/edmas/world/resource_registry.gd"
+Scheduler="*res://scripts/edmas/scheduler/scheduler.gd"
 
 [rendering]
 
