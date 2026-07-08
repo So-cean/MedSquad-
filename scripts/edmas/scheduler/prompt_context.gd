@@ -64,6 +64,7 @@ static func _build_patient_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
 		+ instruction + "\n"
+		+ "UI display rule: return exactly one short utterance per turn; do not split one reply into multiple utterances.\n"
 		+ "必须只返回 JSON：\n"
 		+ '{"think":"30字内","utterances":["10-20字的大白话回答"]}'
 	)
@@ -77,6 +78,7 @@ static func _build_triage_nurse_prompt(self_npc: BaseNpc, target_npc: BaseNpc, m
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
 		+ "目标：3-5轮内完成分诊。症状严重时 next_step.next_role=doctor，目标诊室 target_room=DOCTOR 或 ED_RESUS；轻症可 discharge。\n"
+		+ "UI display rule: each response must contain exactly one short utterance; do not split one reply into multiple utterances.\n"
 		+ "必须只返回 JSON：\n"
 		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
 		+ "分诊结束时返回：\n"
@@ -93,6 +95,7 @@ static func _build_doctor_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory:
 		+ build_resource_snapshot() + "\n"
 		+ "问诊要短：先问病史/既往史/过敏，再决定处置。3-5轮内完成。\n"
 		+ "orders 白名单：ct_scan / lab_test / ecg。Step 4A 阶段无设备 session，若输出 orders，scheduler 会 warning 后 discharge。\n"
+		+ "UI display rule: each response must contain exactly one short utterance; do not split one reply into multiple utterances.\n"
 		+ "必须只返回 JSON：\n"
 		+ '{"think":"30字内","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
 		+ "问诊完成时返回：\n"

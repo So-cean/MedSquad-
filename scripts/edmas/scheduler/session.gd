@@ -6,11 +6,9 @@ signal ended(session, result: Dictionary)
 
 enum State { PENDING, WAITING_FOR_RESOURCES, ACTIVE, ENDED }
 
-const TYPEWRITER_INTERVAL: float = 0.04
-const THINK_PAUSE: float = 0.5
-const FADE_DURATION: float = 0.25
 const CHARS_PER_SEC: float = 10.0
-const MIN_UTT_TIME: float = 1.5
+const COMPACT_MAX_CHARS: int = 26
+const COMPACT_MIN_TIME: float = 2.2
 const SAFETY_TIMEOUT: float = 15.0
 
 var participants: Dictionary = {}
@@ -165,21 +163,30 @@ func _collect_utterances(action: Dictionary) -> Array:
 
 func _wait_display(npc_id: String, action: Dictionary) -> void:
 	var my_turn: int = _turn_id
-	var think: String = action.get("think", "")
 	var utterances: Array = _collect_utterances(action)
-	var think_time: float = 0.0
-	if not think.is_empty():
-		think_time = think.length() * TYPEWRITER_INTERVAL + THINK_PAUSE + FADE_DURATION
-	var utterance_time: float = 0.0
-	for utt in utterances:
-		utterance_time += maxf(float(str(utt).length()) / CHARS_PER_SEC, MIN_UTT_TIME)
-	await NpcManager.get_tree().create_timer(think_time + utterance_time).timeout
+	var compact_text: String = _compact_display_text(utterances)
+	var display_time: float = maxf(float(compact_text.length()) / CHARS_PER_SEC, COMPACT_MIN_TIME)
+	await NpcManager.get_tree().create_timer(display_time).timeout
 	if _ended or my_turn != _turn_id:
 		return
 	_displaying = false
 	_after_display(npc_id, action)
 	if not _response_queue.is_empty():
 		_try_process_queue()
+
+
+func _compact_display_text(utterances: Array) -> String:
+	var full_text: String = ""
+	for utt in utterances:
+		var text: String = str(utt).strip_edges()
+		if text.is_empty():
+			continue
+		full_text += (" " if not full_text.is_empty() else "") + text
+	if full_text.is_empty():
+		full_text = "..."
+	if full_text.length() > COMPACT_MAX_CHARS:
+		return full_text.left(COMPACT_MAX_CHARS).strip_edges() + " ..."
+	return full_text
 
 
 func _after_display(_npc_id: String, _action: Dictionary) -> void:
