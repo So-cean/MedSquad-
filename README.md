@@ -274,9 +274,8 @@ scripts/
 │   ├── npc_manager.gd          上帝视角NPC管理 + 自主对话循环 + 事件总线 (autoload)
 │   ├── map_system.gd           NavigationRegion2D + 路径查询 + 区域触发器 (autoload)
 │   ├── hospital_map_data.gd    命名位置 + 楼层坐标 (autoload)
-│   ├── main_edmas.gd           主场景
 │   ├── map_npc.gd              楼层NPC (支持walk_to + can_wander)
-│   └── managers/
+│   └── npc_interaction_zone.gd 交互区触发器
 ├── dialogue/
 │   ├── dialogue_manager.gd     气泡池 + 不重叠 + 自动回收 (autoload)
 │   ├── dialogue_bubble.gd      气泡UI (think+utterance共用, 3行滚动, 自动fade)
@@ -285,9 +284,8 @@ scripts/
 │   └── conversation_manager.gd (备用)
 └── ui/virtual_joystick.gd      触控摇杆
 scens/edmas/
-├── Main_EDMAS.tscn             主场景
-├── Floor_*.tscn                楼层场景
-└── DialogueTest.tscn           测试场景 (完整地图+碰撞+NPC)
+├── DialogueTest.tscn           主场景 (完整地图+碰撞+NPC)
+└── Floor_*.tscn                楼层场景
 assets/maps/
 ├── normalized/                 地图图 (1672×941)
 ├── collision/                  墙体碰撞多边形
