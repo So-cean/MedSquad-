@@ -1,0 +1,20 @@
+README.md
+  s_ace47056ef9dd1::t_a26bb0fe888fb9 287-288
+  s_ace47056ef9dd1::t_524a58ce091dc4 278
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.26-trip",
+  "base_commit_sha": "2817e1b5740cce77740e70647591710fe095cd48",
+  "prompts": {},
+  "sessions": {
+    "s_ace47056ef9dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2756659f-5119-4758-96a4-aec8ddc9a509",
+        "model": "arn:aws:bedrock:us-west-2:133197901387:application-inference-profile/ypvzpmevzxdl"
+      },
+      "human_author": "Junlei Wu （吴隽蕾） <wujunlei@trip.com>"
+    }
+  }
+}
