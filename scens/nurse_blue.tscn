@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/nurse_blue.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/edmas/map_npc.gd" id="1"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
 radius = 12.0
@@ -11,6 +11,8 @@ scale = Vector2(2, 2)
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1")
+npc_display_name = "急救护士"
+npc_frames_dir = "res://assets/nurse_blue_frames/"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 4)
