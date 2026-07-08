@@ -24,7 +24,7 @@ const COLOR_HINT: Color = Color(0.36, 0.36, 0.36)
 const FADE_DURATION: float = 0.3
 const CHARS_PER_SEC: float = 10.0
 const COMPACT_MAX_CHARS: int = 26
-const COMPACT_HOLD_TIME: float = 2.2
+const COMPACT_HOLD_TIME: float = 3.2
 
 var _panel: Panel
 var _scroll: ScrollContainer
@@ -111,9 +111,8 @@ func show_entry(entry: DialogueEntry) -> void:
 
 
 func follow_screen_position(cx: float, by: float) -> void:
-	var offset: float = sin(Time.get_ticks_msec() * 0.0025) * 2.0
 	position.x = cx - size.x * 0.5
-	position.y = by - size.y - 20.0 + _bubble_offset_y + offset
+	position.y = by - size.y - 20.0 + _bubble_offset_y
 
 
 func set_offset_y(y: float) -> void:
@@ -253,7 +252,7 @@ func _finish_compact_display(my_seq: int) -> void:
 
 func _auto_fade_out() -> void:
 	var my_seq: int = _seq
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(1.0).timeout
 	if my_seq != _seq or not is_instance_valid(self):
 		return
 	while _expanded and my_seq == _seq and is_instance_valid(self):
