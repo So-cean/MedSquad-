@@ -4,7 +4,7 @@ extends Control
 ## Floating card on mouse hover over NPC.
 ## Dark background, blue border, wraps all info.
 
-const CARD_WIDTH: int = 200
+const CARD_WIDTH: int = 260
 const CARD_PAD: int = 10
 const CARD_FONT_SIZE: int = 11
 const CARD_BG: Color = Color(0.06, 0.06, 0.12, 0.95)
@@ -85,7 +85,8 @@ func _build_ui() -> void:
 
 		var val: Label = _make_label(COLOR_VALUE, CARD_FONT_SIZE)
 		val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		# No autowrap — Chinese has no spaces, autowrap breaks per-character
+		val.autowrap_mode = TextServer.AUTOWRAP_OFF
 		row.add_child(val)
 
 		_vbox.add_child(row)
