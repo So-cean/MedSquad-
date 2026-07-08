@@ -37,7 +37,7 @@ func _start() -> void:
 	professional_npc.stop_speaking()
 	patient_npc.face_toward(professional_npc.global_position)
 	professional_npc.face_toward(patient_npc.global_position)
-	_fire_llm(_professional_id)
+	_fire_llm(_patient_id)
 
 
 func _fire_llm(npc_id: String) -> void:
@@ -48,9 +48,12 @@ func _fire_llm(npc_id: String) -> void:
 	var partner: BaseNpc = professional_npc if npc_id == _patient_id else patient_npc
 	var role: String = "patient" if npc_id == _patient_id else prompt_role
 	var memory: String = npc.get_memory().get_context_for_partner(NpcManager.get_npc_id(partner), 8) if partner else ""
+	var patient_visible_memory: String = patient_npc.get_memory_context(10) if patient_npc else ""
+	var patient_knowledge: Array = NpcManager.get_knowledge(_patient_id) if role == "patient" else []
 	var prompt: String = PromptContext.build_agent_prompt(role, npc, partner, memory, {
 		"patient_id": _patient_id,
-		"patient_knowledge": NpcManager.get_knowledge(_patient_id),
+		"patient_knowledge": patient_knowledge,
+		"patient_visible_memory": patient_visible_memory,
 	})
 	NpcManager.get_fsm().request(npc_id, prompt)
 

@@ -52,11 +52,18 @@ static func _patient_knowledge(extras: Dictionary) -> String:
 	return str(extras.get("patient_knowledge", []))
 
 
+static func _visible_patient_info(extras: Dictionary) -> String:
+	var visible: String = str(extras.get("patient_visible_memory", "")).strip_edges()
+	if visible.is_empty():
+		return "尚未采集到患者描述。请先让患者描述主诉、症状、持续时间。"
+	return visible
+
+
 static func _build_patient_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory: String, extras: Dictionary) -> String:
 	var target_name: String = target_npc.get_npc_name() if target_npc else "医护人员"
 	var instruction: String = "如果对方刚问问题，只回答这个问题；如果对方给了指示，回一句好的并停止追问。"
 	if memory.is_empty():
-		instruction = "你第一次回答医护人员时，只回答对方问到的内容；如果是开放式询问，就说最难受的1-2个症状，不要一次说完全部病史。"
+		instruction = "你第一次开口是在主动描述病情：只说最难受的1-2个症状和大概持续时间，不要说“好的”，不要一次说完全部病史。"
 	return (
 		"你是普通患者%s，正在医院看病。\n" % self_npc.get_npc_name()
 		+ "对方是%s。\n" % target_name
@@ -74,7 +81,8 @@ static func _build_triage_nurse_prompt(self_npc: BaseNpc, target_npc: BaseNpc, m
 	var patient_id: String = extras.get("patient_id", "")
 	return (
 		"你是急诊分诊护士%s，正在给%s做分诊。\n" % [self_npc.get_npc_name(), patient_id]
-		+ "患者病例线索：%s\n" % _patient_knowledge(extras)
+		+ "你不能读取患者隐藏病例，只能根据患者已经说出口的信息判断。\n"
+		+ "已采集信息：%s\n" % _visible_patient_info(extras)
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
 		+ "目标：3-5轮内完成分诊。症状严重时 next_step.next_role=doctor，目标诊室 target_room=DOCTOR 或 ED_RESUS；轻症可 discharge。\n"
@@ -90,7 +98,8 @@ static func _build_doctor_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory:
 	var patient_id: String = extras.get("patient_id", "")
 	return (
 		"你是急诊医生%s，正在接诊%s。\n" % [self_npc.get_npc_name(), patient_id]
-		+ "患者主诉/分诊信息：%s\n" % _patient_knowledge(extras)
+		+ "你不能读取患者隐藏病例，只能根据患者口述、护士分诊记录、既往对话判断。\n"
+		+ "已采集信息/分诊记录：%s\n" % _visible_patient_info(extras)
 		+ "对话历史：\n%s\n" % (memory if not memory.is_empty() else "（暂无）")
 		+ build_resource_snapshot() + "\n"
 		+ "问诊要短：先问病史/既往史/过敏，再决定处置。3-5轮内完成。\n"
