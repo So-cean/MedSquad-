@@ -289,6 +289,10 @@ func _try_process_queue() -> void:
 	else:
 		print("[NpcManager]   utterances: %s" % str(utts))
 
+	var next_step: Variant = action.get("next_step", null)
+	if next_step is Dictionary:
+		print("[NpcManager]   next_step=%s" % str(next_step))
+
 	_ctx.on_response(npc_id, action)
 	_display(npc_id, action)
 
@@ -393,21 +397,35 @@ func _get_next_speaker(current_npc: String, action: Dictionary) -> String:
 		return "nurse_001"
 
 
+const VALID_ROOMS: Array[String] = [
+	"ED_RESUS", "DOCTOR", "WAITING_AREA", "IMAGING", "LAB",
+]
+
+
 func _extract_target_room(action: Dictionary) -> String:
-	# Try to extract room name from nurse's utterances
+	# Primary: structured next_step from the nurse LLM response.
+	var next_step: Variant = action.get("next_step", null)
+	if next_step is Dictionary:
+		var room: String = str((next_step as Dictionary).get("target_room", "")).strip_edges()
+		if room in VALID_ROOMS:
+			return room
+		if not room.is_empty():
+			push_warning("[NpcManager] Nurse returned unknown target_room=%s, falling back to keyword grep" % room)
+
+	# Fallback: legacy keyword scan over utterances. Kept so an older LLM
+	# response format (missing next_step) still routes patients correctly.
 	var responses: Array = action.get("responses", [])
 	for r in responses:
 		var utts: Array = r.get("utterances", [])
 		for u in utts:
 			var text: String = str(u)
-			# Check for known location keywords
-			if "抢救" in text or "抢救室" in text:
+			if "抢救" in text:
 				return "ED_RESUS"
 			if "候诊" in text or "等候" in text:
 				return "WAITING_AREA"
-			if "CT" in text:
+			if "CT" in text or "影像" in text:
 				return "IMAGING"
-			if "检验" in text or "抽血" in text:
+			if "检验" in text or "抽血" in text or "化验" in text:
 				return "LAB"
 			if "诊室" in text or "医生" in text:
 				return "DOCTOR"

@@ -221,9 +221,18 @@ func _build_nurse_prompt(npc_id: String, d: Dictionary) -> String:
 		+ "1. 如果患者刚到还没说什么，问ta怎么了\n"
 		+ "2. 如果患者说了主诉，追问细节（多久了？还有什么不舒服？）\n"
 		+ "3. 如果症状问够了，给出分诊判断和指示\n"
-		+ "4. 如果已经给了指示，设conversation_done=true\n"
+		+ "4. 如果已经给了指示，设conversation_done=true，并在 next_step 里指定目标\n"
 		+ waiting_str + "\n\n"
+		+ "分诊完成时必须填写 next_step，target_room 只能从以下白名单中选择：\n"
+		+ "  - ED_RESUS   (抢救室，1级即刻/2级危重，如胸痛、休克、严重外伤)\n"
+		+ "  - DOCTOR     (医生诊室，3级急症/4级亚急症，需要医生进一步问诊)\n"
+		+ "  - WAITING_AREA (候诊区，暂无异常或等待复诊)\n"
+		+ "  - IMAGING    (影像检查，需要 CT/X 光)\n"
+		+ "  - LAB        (检验科，需要抽血化验)\n"
+		+ "priority: 1=即刻 2=危重 3=急症 4=亚急症 5=非急症\n"
+		+ "对话未完成时 next_step 设 null。\n\n"
 		+ "重要：不要重复之前说过的话。根据对话进度往前推进。\n"
 		+ "必须返回JSON，不要加任何其他文字：\n"
 		+ '{"think": "你的判断30字内", '
-		+ '"responses": [{"target": "' + _active_patient + '", "utterances": ["对'+_active_patient+'说1句话"], "conversation_done": false}]}')
+		+ '"responses": [{"target": "' + _active_patient + '", "utterances": ["对'+_active_patient+'说1句话"], "conversation_done": false}], '
+		+ '"next_step": null}')
