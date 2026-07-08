@@ -73,18 +73,14 @@ func _build_nav_region_from_collision() -> NavigationRegion2D:
 	if not wall_poly:
 		return null
 
-	# The wall polygon defines the OUTER boundary.
-	# For navigation, we need the walkable area INSIDE the walls.
-	# The polygon vertices trace the wall outline — we use it as the nav outline.
+	# Bake navmesh using the non-deprecated API
 	var region: NavigationRegion2D = NavigationRegion2D.new()
 	region.name = "NavigationRegion2D"
 
 	var nav_poly: NavigationPolygon = NavigationPolygon.new()
-	# Set the outline (same as wall polygon — NavigationServer will bake the interior)
-	nav_poly.add_outline(wall_poly.polygon)
-
-	# Bake from outlines
-	nav_poly.make_polygons_from_outlines()
+	var source: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	source.add_traversable_outline(wall_poly.polygon)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source)
 
 	region.navigation_polygon = nav_poly
 	return region

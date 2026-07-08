@@ -132,8 +132,8 @@ func _ensure_bubble(npc: BaseNpc, entry: DialogueEntry) -> void:
 	for b in _bubble_pool:
 		if not b.is_available():
 			continue
-		var active: int = _slots.size()
-		b.set_offset_y(-active * 70.0)
+		# Set offset ONCE at assignment — not recalculated every frame
+		b.set_offset_y(0.0)  # no stacking offset — bubbles follow their own NPC
 		b.show_entry(entry)
 		_slots[npc] = b
 		return
