@@ -47,8 +47,8 @@
 **之前两次失败的修复**:
 1. `fit_content=false` + 固定54px → 1行内容也占54px空白
 2. `fit_content=true` + `get_combined_minimum_size()` → 测量值不可靠，3行限制失效
-**新修复**: 用 `_label.get_content_height()`（RichTextLabel 的实际渲染高度 API）。text 改变后 `await get_tree().process_frame` 一帧再 `_reflow()` 让布局刷新。`_scroll.clip_contents = true` 防御性裁剪。
-**状态**: 修复中
+**新修复**: 用 `_label.get_content_height()`（RichTextLabel 的实际渲染高度 API）。`SCROLL_MODE_AUTO` 启用滚动（>3行时滚到底显示最后3行）。scrollbar 通过 `sb.visible=false + modulate=transparent` 隐藏。`_scroll.clip_contents=true` 防御性裁剪。`_process` 每帧 `scroll_vertical = sb.max_value` 自动滚到底。
+**状态**: fixed (commit a74d039)
 
 ## 问题11: 第二个护士只在第一轮被使用
 **症状**: 5个患者，nurse_001 处理了 patient_001/003/004/005，nurse_002 只处理了 patient_002。日志显示后续患者全部 queue 到 staff_nurse_001。
@@ -58,9 +58,9 @@
 3. `scheduler.gd:88-98` `_on_resource_state_changed` 重试同一个绑定 resource，不重新扫描池。
 **修复**:
 1. `resource_registry.gd:find_by_role` 改为返回**队列最短**的同类 resource（负载均衡）
-2. `scheduler.gd:_on_resource_state_changed` 重试时如果绑定 resource 仍忙，重新 `find_idle_by_role` 重绑
-3. `session.gd` 增加 `required_role` 字段，让重绑成为可能
-**状态**: 修复中
+2. `session.try_activate` 重绑逻辑：如果绑定 resource 忙且存在空闲同类 resource，swap 到空闲的（先 cancel 旧的 queue 位置）
+3. `session.gd` 增加 `required_role` 字段（从第一个 resource 推导），让重绑成为可能
+**状态**: fixed (commit a74d039)
 
 ## 问题12: 绿色患者 (patient_003) 一直卡住
 **症状**: patient_003 + doctor_001 进行了 10+ 轮 LLM 来回，session 一直不结束。最后勉强结束。
@@ -70,10 +70,10 @@
 3. `interaction_session.gd` 没有最大轮数限制
 4. `prompt_context.gd:62-77` 患者 prompt 没有 `conversation_done` 字段——患者无法主动结束对话（设计上由医生决定，但应该明确）
 **修复**:
-1. doctor + triage_nurse prompt 加显式说明：决定处置方案后设 `conversation_done=true`
-2. `interaction_session.gd` 加最大轮数 8（4 医护+4 患者）→ 强制结束，next_role 按当前 goal 决定（triage→doctor，doctor→discharge）
-3. `session.gd:_start_safety_timer` 改用 wall-clock 自激活起经过的时间，不再用 turn_id 比较
-**状态**: 修复中
+1. doctor + triage_nurse prompt 加显式说明：决定处置方案后设 `conversation_done=true`；最多8轮必须结束
+2. `interaction_session._after_display` 加 `MAX_TURNS=8` 硬上限→强制结束，next_role 按当前 goal 决定（triage→doctor，doctor→discharge）
+3. `session._start_safety_timer` 改用 wall-clock 自激活起经过的时间（`Time.get_ticks_msec()`），不再用 turn_id 比较。`SAFETY_TIMEOUT` 15s → 30s
+**状态**: fixed (commit a74d039)
 
 ## 问题13: 结构化输出空 utterances ("utter 1/1: 0 chars")
 **症状**: 日志大量 `[Bubble] utter 1/1: 0 chars`，LLM 返回了 `{"utterances": [""]}` 或 `{"responses": [{"utterances": [""]}]}`，气泡显示空内容。
@@ -82,6 +82,6 @@
 2. `session.gd:162-171` `_collect_utterances` 用 `str(utt)` append，空串不被过滤
 3. `session.gd:149` `if utterances.is_empty()` 只检查数组长度，`[""]` 不是空数组所以 bypass
 **修复**:
-1. `npc_fsm.gd:_parse_action` 解析后遍历 `responses[].utterances` 和 `utterances`，过滤空/whitespace。如果全空，返回 `["..."]`
-2. `session.gd:_collect_utterances` 同样的过滤作为防御
-**状态**: 修复中
+1. `npc_fsm._parse_action` 解析后遍历 `responses[].utterances` 和 `utterances`，过滤空/whitespace。如果全空，返回 `["..."]`。新增 `_filter_utterances()` helper
+2. `session._collect_utterances` 同样的过滤作为防御
+**状态**: fixed (commit a74d039)
