@@ -28,7 +28,7 @@ enum NpcState {
 #  Exports (tweak per-instance in the editor)
 # ═══════════════════════════════════════════════════════════════════════
 
-@export var speed: float = 60.0
+@export var speed: float = 90.0
 @export var idle_min: float = 1.0
 @export var idle_max: float = 4.0
 @export var move_min: float = 0.8
@@ -201,39 +201,60 @@ func _physics_process(delta: float) -> void:
 	# Navigation takes priority over wandering
 	if _is_walking and _nav_agent:
 		_nav_step()
+		_update_anim()
 		return
 
+	# NPC不做物理碰撞 — 不调move_and_slide
 	_timer -= delta
 
 	match _state:
 		0:
-			velocity = Vector2.ZERO
 			if _timer <= 0.0:
 				_start_move()
 		1:
-			velocity = _dirs[_dir_idx] * speed
 			if _timer <= 0.0:
 				_start_idle()
-
-	move_and_slide()
-	if is_on_wall():
-		_start_move()
 
 	_update_anim()
 
 
 # ── Navigation ───────────────────────────────────────────────
 
-## Walk to a named location (e.g. "TRIAGE", "CT_ROOM").
+## Walk to a named location (e.g. "TRIAGE", "ED_RESUS").
+## Auto-creates NavigationAgent2D if missing.
 func walk_to(location_name: String) -> void:
-	if not _nav_agent:
-		push_warning("BaseNpc: no NavigationAgent2D child, cannot walk_to")
-		return
 	_walk_target = location_name
+
+	# Auto-create NavigationAgent2D if not present
+	if not _nav_agent:
+		var map_sys: Node = get_node_or_null("/root/MapSystem")
+		if map_sys and map_sys.has_method("ensure_nav_agent"):
+			_nav_agent = map_sys.ensure_nav_agent(self)
+		else:
+			# Fallback: create directly
+			_nav_agent = NavigationAgent2D.new()
+			_nav_agent.name = "NavigationAgent2D"
+			_nav_agent.path_desired_distance = 8.0
+			_nav_agent.target_desired_distance = 8.0
+			add_child(_nav_agent)
+
+	if not _nav_agent:
+		push_warning("BaseNpc: cannot create NavigationAgent2D")
+		return
+
+	# Connect signals if not already
+	if not _nav_agent.velocity_computed.is_connected(_on_nav_velocity_computed):
+		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
+	if not _nav_agent.target_reached.is_connected(_on_nav_target_reached):
+		_nav_agent.target_reached.connect(_on_nav_target_reached)
+	if not _nav_agent.navigation_finished.is_connected(_on_nav_finished):
+		_nav_agent.navigation_finished.connect(_on_nav_finished)
+
 	var target: Vector2 = HospitalMapData.get_location(location_name)
 	_nav_agent.target_position = target
 	_is_walking = true
-	_state = 1  # walking state for anim
+	_state = 1
+	print("[Nav] %s → %s (%s)" % [get_npc_name(), location_name, target])
 
 
 func _nav_step() -> void:
@@ -245,25 +266,41 @@ func _nav_step() -> void:
 
 	var next_pos: Vector2 = _nav_agent.get_next_path_position()
 	var new_vel: Vector2 = global_position.direction_to(next_pos) * speed
-	_nav_agent.velocity = new_vel  # triggers velocity_computed if avoidance on
+	# NPC不做物理碰撞，直接移动position（导航路径已绕开墙体）
+	var delta: float = get_process_delta_time()
+	global_position += new_vel * delta
 	_update_walk_dir(new_vel)
 
 
-func _on_nav_velocity_computed(safe_velocity: Vector2) -> void:
-	velocity = safe_velocity
-	move_and_slide()
+func _on_nav_velocity_computed(_safe_velocity: Vector2) -> void:
+	# Not used — NPC moves via position directly, no move_and_slide
+	pass
 
 
 func _on_nav_target_reached() -> void:
-	print("[Nav] %s arrived at %s" % [get_npc_name(), _walk_target])
+	print("[Nav] %s arrived at %s" % [get_npc_name(), _walk_target if not _walk_target.is_empty() else "pos"])
 	_is_walking = false
 	velocity = Vector2.ZERO
 	_walk_target = ""
+	_state = 0  # idle
+	# If we were approaching an NPC, face them
+	if _face_target_npc and is_instance_valid(_face_target_npc):
+		face_toward(_face_target_npc.global_position)
+		_face_target_npc = null
+	_update_anim()
 
+
+## Signal emitted when NPC arrives at a named location via walk_to().
+signal arrived_at(location: String)
 
 func _on_nav_finished() -> void:
 	_is_walking = false
 	velocity = Vector2.ZERO
+	_state = 0
+	if not _walk_target.is_empty():
+		arrived_at.emit(_walk_target)
+		_walk_target = ""
+	_update_anim()
 
 
 func _update_walk_dir(vel: Vector2) -> void:
@@ -285,6 +322,62 @@ func _update_walk_dir(vel: Vector2) -> void:
 
 func is_walking() -> bool:
 	return _is_walking
+
+
+## Face toward a target position (for dialogue). Sets idle animation facing the target.
+func face_toward(target_pos: Vector2) -> void:
+	var diff: Vector2 = target_pos - global_position
+	if diff.length() < 1.0:
+		return
+	_state = 0  # idle
+	if abs(diff.x) > abs(diff.y):
+		_dir_idx = 2 if diff.x > 0 else 6  # face right or left
+	else:
+		_dir_idx = 0 if diff.y > 0 else 4  # face down or up
+	_update_anim()
+
+
+## Walk to a position near another NPC, then face them.
+## offset = distance to stop from target (default 60px)
+func approach_and_face(target_npc: BaseNpc, offset: float = 60.0) -> void:
+	var target_pos: Vector2 = target_npc.global_position
+	var dir: Vector2 = (global_position - target_pos).normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2.DOWN
+	var stop_pos: Vector2 = target_pos + dir * offset
+	# Walk to stop position
+	walk_to_pos(stop_pos)
+	# Will face target when arrived (handled in _on_nav_target_reached)
+	_face_target_npc = target_npc
+
+
+var _face_target_npc: BaseNpc = null
+
+
+## Walk to a raw position (not a named location).
+func walk_to_pos(target: Vector2) -> void:
+	if not _nav_agent:
+		var map_sys: Node = get_node_or_null("/root/MapSystem")
+		if map_sys and map_sys.has_method("ensure_nav_agent"):
+			_nav_agent = map_sys.ensure_nav_agent(self)
+		else:
+			_nav_agent = NavigationAgent2D.new()
+			_nav_agent.name = "NavigationAgent2D"
+			_nav_agent.path_desired_distance = 8.0
+			_nav_agent.target_desired_distance = 8.0
+			add_child(_nav_agent)
+	if not _nav_agent:
+		return
+	if not _nav_agent.velocity_computed.is_connected(_on_nav_velocity_computed):
+		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
+	if not _nav_agent.target_reached.is_connected(_on_nav_target_reached):
+		_nav_agent.target_reached.connect(_on_nav_target_reached)
+	if not _nav_agent.navigation_finished.is_connected(_on_nav_finished):
+		_nav_agent.navigation_finished.connect(_on_nav_finished)
+	_nav_agent.target_position = target
+	_is_walking = true
+	_state = 1
+	print("[Nav] %s → (%.0f, %.0f)" % [get_npc_name(), target.x, target.y])
 
 
 # ═══════════════════════════════════════════════════════════════════════

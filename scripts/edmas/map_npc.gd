@@ -18,13 +18,12 @@ func get_walk_flip_dirs() -> Array[String]:
 	return npc_walk_flip
 
 func _physics_process(delta: float) -> void:
-	# Navigation takes priority (BaseNpc handles it)
+	# Navigation takes priority
 	if _is_walking and _nav_agent:
 		_nav_step()
+		_update_anim()
 		return
 	# Optional wandering
 	if can_wander:
 		super._physics_process(delta)
-	else:
-		velocity = Vector2.ZERO
-		move_and_slide()
+	# else: stationary — no movement, no collision

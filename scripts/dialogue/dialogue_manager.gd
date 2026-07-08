@@ -73,15 +73,24 @@ func _process(_delta: float) -> void:
 		else:
 			_release_bubble(npc)
 
-	# Position active bubbles above their NPC
+	# Position active bubbles above their NPC — avoid overlap
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var used_y_positions: Array = []  # track Y positions to avoid overlap
 	for npc in _slots:
 		var bubble: DialogueBubble = _slots[npc]
 		var screen_pos: Vector2 = camera.get_canvas_transform() * npc.global_position
 
-		# Clamp so bubble stays inside the viewport horizontally
+		# Clamp horizontally
 		var cx: float = clamp(screen_pos.x, bubble.size.x * 0.5, viewport_size.x - bubble.size.x * 0.5)
-		bubble.follow_screen_position(cx, screen_pos.y)
+
+		# Stack vertically if multiple bubbles overlap
+		var by: float = screen_pos.y - 20.0
+		for used_y in used_y_positions:
+			if abs(by - used_y) < bubble.size.y + 10.0:
+				by -= bubble.size.y + 10.0  # shift up
+		used_y_positions.append(by)
+
+		bubble.follow_screen_position(cx, by)
 
 
 func _get_camera() -> Camera2D:
@@ -93,8 +102,11 @@ func _ensure_bubble(npc: BaseNpc, entry: DialogueEntry) -> void:
 	if _slots.has(npc):
 		var b: DialogueBubble = _slots[npc]
 		if b._current_entry == entry:
-			return  # Same entry still playing — no update needed
-		b.show_entry(entry)  # New entry — refresh bubble
+			# Auto-release if bubble is done
+			if b._phase == DialogueBubble.Phase.DONE or b._phase == DialogueBubble.Phase.FADING:
+				_release_bubble(npc)
+			return
+		b.show_entry(entry)
 		return
 
 	# Find a free bubble from the pool (skip fading ones)
