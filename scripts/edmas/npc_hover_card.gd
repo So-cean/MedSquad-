@@ -9,11 +9,11 @@ extends Control
 const CARD_WIDTH: int = 200
 const CARD_PAD: int = 10
 const CARD_FONT_SIZE: int = 11
-const CARD_BG: Color = Color(0.08, 0.08, 0.12, 0.92)
-const CARD_BORDER: Color = Color(0.3, 0.5, 0.8, 0.8)
-const COLOR_TITLE: Color = Color(0.9, 0.9, 1.0)
-const COLOR_LABEL: Color = Color(0.5, 0.6, 0.7)
-const COLOR_VALUE: Color = Color(0.85, 0.85, 0.9)
+const CARD_BG: Color = Color(0.05, 0.05, 0.1, 0.95)
+const CARD_BORDER: Color = Color(0.4, 0.6, 1.0, 0.9)
+const COLOR_TITLE: Color = Color(1.0, 1.0, 1.0)
+const COLOR_LABEL: Color = Color(0.55, 0.65, 0.8)
+const COLOR_VALUE: Color = Color(0.95, 0.95, 1.0)
 
 var _panel: Panel
 var _vbox: VBoxContainer
@@ -42,14 +42,16 @@ func _build_ui() -> void:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = CARD_BG
 	style.border_color = CARD_BORDER
-	style.border_width_left = 1
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
 	style.corner_radius_top_left = 6
 	style.corner_radius_top_right = 6
 	style.corner_radius_bottom_left = 6
 	style.corner_radius_bottom_right = 6
+	style.shadow_size = 8
+	style.shadow_color = Color(0, 0, 0, 0.5)
 	style.content_margin_left = CARD_PAD
 	style.content_margin_right = CARD_PAD
 	style.content_margin_top = CARD_PAD

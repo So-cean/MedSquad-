@@ -29,10 +29,11 @@ enum NpcState {
 # ═══════════════════════════════════════════════════════════════════════
 
 @export var speed: float = 90.0
-@export var idle_min: float = 1.0
-@export var idle_max: float = 4.0
-@export var move_min: float = 0.8
-@export var move_max: float = 2.5
+@export var idle_min: float = 2.0
+@export var idle_max: float = 6.0
+@export var move_min: float = 0.5
+@export var move_max: float = 1.5
+@export var can_wander: bool = false  # 默认不自由移动
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Virtual overrides (subclasses MUST override get_frames_dir)
@@ -223,29 +224,38 @@ func _load_legacy_doctor_walk(frames_dir: String, dir_name: String, phase: Strin
 #  Physics
 # ═══════════════════════════════════════════════════════════════════════
 
+# ── Wander anchor — NPC wanders in small radius around this point ──
+var _anchor_pos: Vector2 = Vector2.ZERO
+var _wander_radius: float = 40.0
+
+
 func _physics_process(delta: float) -> void:
-	# Navigation takes priority over wandering
+	# Navigation (walk_to) takes priority
 	if _is_walking and _nav_agent:
 		_nav_step()
 		_update_anim()
 		_separate_from_npcs()
 		return
 
-	# NPC不做墙碰撞 — 用position直接移动
-	_timer -= delta
+	# No wandering by default — NPCs stay in place unless can_wander=true
+	if can_wander:
+		_timer -= delta
+		match _state:
+			0:
+				if _timer <= 0.0:
+					_start_move()
+			1:
+				velocity = _dirs[_dir_idx] * speed * 0.3
+				var d: float = get_physics_process_delta_time()
+				global_position += velocity * d
+				var dist_from_anchor: float = global_position.distance_to(_anchor_pos)
+				if dist_from_anchor > _wander_radius:
+					var back_dir: Vector2 = (_anchor_pos - global_position).normalized()
+					_dir_idx = _dir_to_idx(back_dir)
+				if _timer <= 0.0:
+					_start_idle()
 
-	match _state:
-		0:
-			if _timer <= 0.0:
-				_start_move()
-		1:
-			velocity = _dirs[_dir_idx] * speed
-			var d: float = get_physics_process_delta_time()
-			global_position += velocity * d
-			if _timer <= 0.0:
-				_start_idle()
-
-	# Soft collision: push away from other NPCs
+	# Soft collision: push away from other NPCs even when standing
 	_separate_from_npcs()
 	_update_anim()
 
@@ -428,6 +438,19 @@ func _update_anim() -> void:
 		_anim.play()
 	else:
 		_anim.stop()
+
+
+static func _dir_to_idx(dir: Vector2) -> int:
+	var angle: float = dir.angle()
+	var idx: int = int(round(angle / (PI / 4))) % 8
+	if idx < 0:
+		idx += 8
+	# angle 0=right(idx2), PI/2=down(idx0), PI=left(idx6), -PI/2=up(idx4)
+	# Remap to our _dir_names order: 0=down,1=down_right,2=right,3=up_right,4=up,5=up_left,6=left,7=down_left
+	if abs(dir.x) > abs(dir.y):
+		return 2 if dir.x > 0 else 6
+	else:
+		return 0 if dir.y > 0 else 4
 
 
 static func _dir_name(idx: int) -> String:
