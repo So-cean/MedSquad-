@@ -23,7 +23,7 @@ TimeSystem="*res://scripts/dialogue/time_system.gd"
 NpcManager="*res://scripts/edmas/npc_manager.gd"
 HospitalMapData="*res://scripts/edmas/hospital_map_data.gd"
 MapSystem="*res://scripts/edmas/map_system.gd"
-; BackendBridge removed — GDScript-only NPC FSM now handles LLM calls directly
+ResourceRegistry="*res://scripts/edmas/world/resource_registry.gd"
 
 [rendering]
 
