@@ -33,10 +33,11 @@ func _start() -> void:
 	await _wait_for_arrival(patient_npc, 15.0)
 	if _ended:
 		return
+	patient_npc.stop_speaking()
+	professional_npc.stop_speaking()
 	patient_npc.face_toward(professional_npc.global_position)
 	professional_npc.face_toward(patient_npc.global_position)
-	var first_speaker: String = _patient_id if prompt_role == "triage_nurse" else _professional_id
-	_fire_llm(first_speaker)
+	_fire_llm(_professional_id)
 
 
 func _fire_llm(npc_id: String) -> void:

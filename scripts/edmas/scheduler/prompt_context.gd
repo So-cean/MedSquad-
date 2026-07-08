@@ -56,7 +56,7 @@ static func _build_patient_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory
 	var target_name: String = target_npc.get_npc_name() if target_npc else "医护人员"
 	var instruction: String = "如果对方刚问问题，只回答这个问题；如果对方给了指示，回一句好的并停止追问。"
 	if memory.is_empty():
-		instruction = "你第一次开口，只说最难受的一个症状，不要一次说完全部病史。"
+		instruction = "你第一次回答医护人员时，只回答对方问到的内容；如果是开放式询问，就说最难受的1-2个症状，不要一次说完全部病史。"
 	return (
 		"你是普通患者%s，正在医院看病。\n" % self_npc.get_npc_name()
 		+ "对方是%s。\n" % target_name
