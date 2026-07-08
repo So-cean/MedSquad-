@@ -24,7 +24,7 @@ const COLOR_HINT: Color = Color(0.36, 0.36, 0.36)
 const FADE_DURATION: float = 0.3
 const CHARS_PER_SEC: float = 10.0
 const COMPACT_MAX_CHARS: int = 26
-const COMPACT_HOLD_TIME: float = 3.2
+const COMPACT_HOLD_TIME: float = 2.8
 
 var _panel: Panel
 var _scroll: ScrollContainer
@@ -252,7 +252,7 @@ func _finish_compact_display(my_seq: int) -> void:
 
 func _auto_fade_out() -> void:
 	var my_seq: int = _seq
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(0.4).timeout
 	if my_seq != _seq or not is_instance_valid(self):
 		return
 	while _expanded and my_seq == _seq and is_instance_valid(self):

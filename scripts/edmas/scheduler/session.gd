@@ -77,6 +77,7 @@ func end(p_result: Dictionary = {}) -> void:
 	_ended = true
 	result = p_result
 	state = State.ENDED
+	_clear_participant_speech()
 	_disconnect_fsm()
 	_release_resources()
 	ended.emit(self, result)
@@ -142,11 +143,20 @@ func _display(npc_id: String, action: Dictionary) -> void:
 	var npc: BaseNpc = NpcManager.get_npc(npc_id)
 	if not npc:
 		return
+	_clear_participant_speech(npc)
 	var think: String = action.get("think", "")
 	var utterances: Array = _collect_utterances(action)
 	if utterances.is_empty():
 		utterances = ["..."]
 	npc.speak(DialogueEntry.new(npc.get_npc_name(), think, "", "", utterances))
+
+
+func _clear_participant_speech(except_npc: BaseNpc = null) -> void:
+	for participant in participants.values():
+		var npc: BaseNpc = participant as BaseNpc
+		if not npc or npc == except_npc:
+			continue
+		npc.stop_speaking()
 
 
 func _collect_utterances(action: Dictionary) -> Array:
