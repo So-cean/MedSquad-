@@ -1,0 +1,22 @@
+scripts/edmas/conversation_context.gd
+  s_ace47056ef9dd1::t_9e5224d7b6f20f 224,226-233,237-238
+scripts/edmas/npc_manager.gd
+  s_ace47056ef9dd1::t_1cf5789993f36c 292-295
+  s_ace47056ef9dd1::t_8f7493a628a8ba 400-404,406-416,422,426,428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.26-trip",
+  "base_commit_sha": "8974c9429e0a5744d49625fea53ff11e36af4154",
+  "prompts": {},
+  "sessions": {
+    "s_ace47056ef9dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2756659f-5119-4758-96a4-aec8ddc9a509",
+        "model": "arn:aws:bedrock:us-west-2:133197901387:application-inference-profile/ypvzpmevzxdl"
+      },
+      "human_author": "Junlei Wu （吴隽蕾） <wujunlei@trip.com>"
+    }
+  }
+}
