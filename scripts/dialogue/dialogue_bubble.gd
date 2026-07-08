@@ -138,8 +138,7 @@ func show_entry(entry: DialogueEntry) -> void:
 	visible = true
 	modulate = Color.WHITE
 
-	# Setup fixed size
-	_setup_fixed_size()
+	# Setup initial size
 	_needs_resize = true
 
 	if _think_text.is_empty():
@@ -193,7 +192,8 @@ func _build_ui() -> void:
 	_think_bg.visible = false
 	_panel.add_child(_think_bg)
 
-	# ScrollContainer — ONLY SCROLL_MODE_DISABLED, no scrollbar ever
+	# ScrollContainer — SCROLL_MODE_DISABLED, no scrollbar
+	# Size = min(content, MAX_CONTENT_HEIGHT) set in _reflow
 	_scroll = ScrollContainer.new()
 	_scroll.mouse_filter = MOUSE_FILTER_IGNORE
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -212,27 +212,31 @@ func _build_ui() -> void:
 		_icon.add_theme_font_override("font", _cn_font)
 	row.add_child(_icon)
 
-	# Label: fit_content=FALSE, fixed height = MAX_CONTENT_HEIGHT
-	# Content beyond 3 lines is clipped by ScrollContainer
+	# Label: fit_content=true so it grows 1-3 lines, ScrollContainer clips at 3
 	_label = RichTextLabel.new()
 	_label.mouse_filter = MOUSE_FILTER_IGNORE
-	_label.fit_content = false
+	_label.fit_content = true  # grows with content (1-3 lines)
 	_label.language = "zh"
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_label.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_label.add_theme_color_override("default_color", COLOR_THINK)
-	_label.custom_minimum_size = Vector2(MAX_WIDTH - PAD_H - 24, LINE_HEIGHT)
-	_label.size = Vector2(MAX_WIDTH - PAD_H - 24, MAX_CONTENT_HEIGHT)
+	_label.custom_minimum_size = Vector2(MAX_WIDTH - PAD_H - 24, LINE_HEIGHT)  # min 1 line
 	_label.bbcode_enabled = true
 	if _cn_font:
 		_label.add_theme_font_override("normal_font", _cn_font)
 	row.add_child(_label)
 
 
-## Fixed size: panel + scroll + label all set to MAX_CONTENT_HEIGHT. Never changes.
-func _setup_fixed_size() -> void:
-	var bw: float = MAX_WIDTH
-	var bh: float = MAX_CONTENT_HEIGHT + PAD_V + TAIL_H
+## Reflow: height = min(content, 3 lines). Label grows, ScrollContainer clips.
+func _reflow() -> void:
+	if not _label:
+		return
+	var row: Node = _label.get_parent()
+	var row_size: Vector2 = row.get_combined_minimum_size() if row else _label.get_combined_minimum_size()
+	var bw: float = clamp(row_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
+	# Height: auto-fit 1-3 lines, cap at MAX_CONTENT_HEIGHT
+	var content_h: float = minf(row_size.y, MAX_CONTENT_HEIGHT)
+	var bh: float = content_h + PAD_V + TAIL_H
 
 	size = Vector2(bw, bh)
 	var panel_h: float = bh - TAIL_H
@@ -240,22 +244,16 @@ func _setup_fixed_size() -> void:
 		_panel.size = Vector2(bw, panel_h)
 	if _think_bg:
 		_think_bg.position = Vector2.ZERO
-		_think_bg.size = Vector2(bw, panel_h)
+		_think_bg.size = Vector2(bw, panel_h) if _phase == Phase.THINK else Vector2.ZERO
 	if _scroll:
 		_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
-		_scroll.size = Vector2(bw - PAD_H, MAX_CONTENT_HEIGHT)
-	if _label:
-		_label.size = Vector2(MAX_WIDTH - PAD_H - 24, MAX_CONTENT_HEIGHT)
-
-	queue_redraw()
-
-
-func _reflow() -> void:
-	# Size is FIXED — just auto-scroll to bottom
-	if _scroll:
-		var sb: VScrollBar = _scroll.get_v_scroll_bar()
-		if sb:
-			_scroll.scroll_vertical = int(sb.max_value)
+		_scroll.size = Vector2(bw - PAD_H, content_h)
+	# Hide scrollbar completely
+	var sb: VScrollBar = _scroll.get_v_scroll_bar() if _scroll else null
+	if sb:
+		sb.visible = false
+		sb.modulate = Color(0, 0, 0, 0)
+		_scroll.scroll_vertical = int(sb.max_value)
 	queue_redraw()
 
 
