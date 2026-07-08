@@ -11,6 +11,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if NpcManager and not NpcManager.patient_arrived.is_connected(_on_patient_arrived):
 		NpcManager.patient_arrived.connect(_on_patient_arrived)
+	if NpcManager and not NpcManager.patient_discharged.is_connected(_on_patient_discharged):
+		NpcManager.patient_discharged.connect(_on_patient_discharged)
 	if ResourceRegistry and not ResourceRegistry.resource_state_changed.is_connected(_on_resource_state_changed):
 		ResourceRegistry.resource_state_changed.connect(_on_resource_state_changed)
 
@@ -42,6 +44,10 @@ func _on_patient_arrived(patient_id: String, npc: BaseNpc) -> void:
 	_started_patients[patient_id] = true
 	_patient_plans[patient_id] = PatientPlan.new(patient_id)
 	_dispatch_triage(patient_id, npc)
+
+
+func _on_patient_discharged(_patient_id: String) -> void:
+	_check_all_discharged()
 
 
 func _dispatch_triage(patient_id: String, patient: BaseNpc) -> void:

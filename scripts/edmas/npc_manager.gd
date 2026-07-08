@@ -18,6 +18,7 @@ var _ctx: ConversationContext = null
 var _patient_counter: int = 0
 var _nurse_counter: int = 0
 var _doctor_counter: int = 0
+var _discharging_patients: Dictionary = {}
 
 const PATIENT_FRAMES: Array[String] = [
 	"res://assets/patient_blue_frames/",
@@ -157,7 +158,25 @@ func discharge(npc_id: String) -> void:
 	var npc: BaseNpc = get_npc(npc_id)
 	if not npc:
 		return
+	if _discharging_patients.has(npc_id):
+		return
+	_discharging_patients[npc_id] = true
+	npc.stop_speaking()
+	npc.set_state(BaseNpc.NpcState.GOING_TO_ROOM, "ED_ENTRANCE")
+	_finish_discharge_after_exit(npc_id, npc)
+	print("[NpcManager] %s walking to exit for discharge" % npc_id)
+
+
+func _finish_discharge_after_exit(npc_id: String, npc: BaseNpc) -> void:
+	var elapsed: float = 0.0
+	while is_instance_valid(npc) and npc.is_walking() and elapsed < 20.0:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+	if not _npcs.has(npc_id):
+		_discharging_patients.erase(npc_id)
+		return
 	npc.set_state(BaseNpc.NpcState.DISCHARGED)
+	_discharging_patients.erase(npc_id)
 	unregister(npc_id)
 	print("[NpcManager] Discharged %s" % npc_id)
 
