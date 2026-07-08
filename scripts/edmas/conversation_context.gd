@@ -1,9 +1,6 @@
 class_name ConversationContext
 extends RefCounted
 
-signal response_received(npc_id: String, action: Dictionary)
-signal conversation_done(patient_id: String)
-
 var fsm: Node
 var _npcs: Dictionary = {}
 var _done_patients: Dictionary = {}
@@ -32,7 +29,6 @@ func is_conversation_done(patient_id: String) -> bool:
 
 func mark_done(patient_id: String) -> void:
 	_done_patients[patient_id] = true
-	conversation_done.emit(patient_id)
 
 
 func on_response(npc_id: String, action: Dictionary, partner_id: String = "") -> void:
@@ -71,7 +67,6 @@ func on_response(npc_id: String, action: Dictionary, partner_id: String = "") ->
 			if not done_id.is_empty():
 				mark_done(done_id)
 
-	response_received.emit(npc_id, action)
 
 
 func get_knowledge(npc_id: String) -> Array:

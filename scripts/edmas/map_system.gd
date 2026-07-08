@@ -15,9 +15,7 @@ extends Node
 ##
 ## Other systems call MapSystem for navigation only.
 
-signal npc_arrived(npc: CharacterBody2D, location: String)
-signal npc_left_area(npc: CharacterBody2D, location: String)
-signal floor_changed(floor_id: int)
+
 
 # Navigation
 var _nav_region: NavigationRegion2D = null
@@ -132,15 +130,12 @@ func _on_body_entered(body: Node, location_name: String) -> void:
 	if body is CharacterBody2D:
 		var id: int = body.get_instance_id()
 		_npc_locations[id] = location_name
-		npc_arrived.emit(body, location_name)
 
 
 func _on_body_exited(body: Node, location_name: String) -> void:
 	if body is CharacterBody2D:
 		var id: int = body.get_instance_id()
 		_npc_locations.erase(id)
-		npc_left_area.emit(body, location_name)
-
 
 # ══════════════════════════════════════════════════════════════════════
 #  Public API — Navigation
@@ -215,7 +210,6 @@ const FLOOR_SCENES: Dictionary = {
 
 func change_floor(floor_id: int) -> void:
 	HospitalMapData.set_floor(floor_id)
-	floor_changed.emit(floor_id)
 	var path: String = FLOOR_SCENES.get(floor_id, "")
 	if not path.is_empty():
 		get_tree().change_scene_to_file(path)

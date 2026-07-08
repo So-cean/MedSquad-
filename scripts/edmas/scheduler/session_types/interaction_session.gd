@@ -67,6 +67,12 @@ func _handle_action(npc_id: String, action: Dictionary) -> void:
 func _after_display(npc_id: String, action: Dictionary) -> void:
 	if _ended:
 		return
+	# Max-turn cap: prevent endless LLM loops even if LLM never sets conversation_done
+	if _turn_id >= MAX_TURNS:
+		var forced_role: String = "doctor" if prompt_role == "triage_nurse" else "discharge"
+		print("[Session] max turns reached (%d), force ending %s → %s" % [_turn_id, prompt_role, forced_role])
+		end({"next_step": {"next_role": forced_role, "reason": "max_turns_reached", "orders": []}, "patient_id": _patient_id, "professional_id": _professional_id})
+		return
 	if _is_done(action):
 		var final_result: Dictionary = _result_from_action(action)
 		print("[Session] ended %s patient=%s result=%s" % [prompt_role, _patient_id, str(final_result)])

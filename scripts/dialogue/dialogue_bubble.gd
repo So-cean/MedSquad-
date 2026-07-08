@@ -74,10 +74,7 @@ func _ready() -> void:
 func _load_cn_font() -> void:
 	if _cn_font:
 		return
-	var tex: FontFile = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
-	if tex:
-		_cn_font = FontVariation.new()
-		_cn_font.base_font = tex
+	_cn_font = FontRegistry.get_cn_font()
 
 
 func is_available() -> bool:
@@ -192,12 +189,13 @@ func _build_ui() -> void:
 	_think_bg.visible = false
 	_panel.add_child(_think_bg)
 
-	# ScrollContainer — SCROLL_MODE_DISABLED, no scrollbar
+	# ScrollContainer — SCROLL_MODE_AUTO (enables scroll for >3 lines), hide scrollbar
 	# Size = min(content, MAX_CONTENT_HEIGHT) set in _reflow
 	_scroll = ScrollContainer.new()
 	_scroll.mouse_filter = MOUSE_FILTER_IGNORE
+	_scroll.clip_contents = true  # defensive: clip overflow
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO  # need scroll for >3 lines
 	_panel.add_child(_scroll)
 
 	var row: HBoxContainer = HBoxContainer.new()
@@ -227,15 +225,15 @@ func _build_ui() -> void:
 	row.add_child(_label)
 
 
-## Reflow: height = min(content, 3 lines). Label grows, ScrollContainer clips.
+## Reflow: height = min(content, 3 lines). Label grows, ScrollContainer clips + scrolls.
 func _reflow() -> void:
 	if not _label:
 		return
-	var row: Node = _label.get_parent()
-	var row_size: Vector2 = row.get_combined_minimum_size() if row else _label.get_combined_minimum_size()
-	var bw: float = clamp(row_size.x + PAD_H, MIN_WIDTH, MAX_WIDTH)
-	# Height: auto-fit 1-3 lines, cap at MAX_CONTENT_HEIGHT
-	var content_h: float = minf(row_size.y, MAX_CONTENT_HEIGHT)
+	# Use get_content_height() — actual rendered height of wrapped RichTextLabel.
+	# get_combined_minimum_size() returns stale/wrong values for fit_content labels.
+	var content_h: float = minf(float(_label.get_content_height()), MAX_CONTENT_HEIGHT)
+	# Width: fixed at MAX_WIDTH (label is already constrained by custom_minimum_size.x)
+	var bw: float = MAX_WIDTH
 	var bh: float = content_h + PAD_V + TAIL_H
 
 	size = Vector2(bw, bh)
@@ -248,12 +246,11 @@ func _reflow() -> void:
 	if _scroll:
 		_scroll.position = Vector2(PAD_H * 0.5, PAD_V * 0.5)
 		_scroll.size = Vector2(bw - PAD_H, content_h)
-	# Hide scrollbar completely
+	# Hide scrollbar completely (SCROLL_MODE_AUTO enables scroll, but visually hide bar)
 	var sb: VScrollBar = _scroll.get_v_scroll_bar() if _scroll else null
 	if sb:
 		sb.visible = false
 		sb.modulate = Color(0, 0, 0, 0)
-		_scroll.scroll_vertical = int(sb.max_value)
 	queue_redraw()
 
 
@@ -274,7 +271,7 @@ func _process(_delta: float) -> void:
 	if _needs_resize:
 		_needs_resize = false
 		_reflow()
-	# Auto-scroll to bottom every frame
+	# Auto-scroll to bottom every frame (shows last 3 lines for >3-line text)
 	if _scroll:
 		var sb: VScrollBar = _scroll.get_v_scroll_bar()
 		if sb and sb.max_value > 0:

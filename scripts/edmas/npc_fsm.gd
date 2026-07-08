@@ -114,12 +114,35 @@ func _parse_action(text: String, npc_id: String) -> Dictionary:
 		var result: Dictionary = parsed as Dictionary
 		if result.has("dialogue") and not result.has("utterances"):
 			result["utterances"] = [result["dialogue"]]
+		# Filter empty utterances in both top-level and responses[].utterances
+		result["utterances"] = _filter_utterances(result.get("utterances", []))
+		var responses: Array = result.get("responses", [])
+		var cleaned_responses: Array = []
+		for resp in responses:
+			if resp is Dictionary:
+				var resp_d: Dictionary = resp as Dictionary
+				resp_d["utterances"] = _filter_utterances(resp_d.get("utterances", []))
+				cleaned_responses.append(resp_d)
+		result["responses"] = cleaned_responses
 		if not result.has("type"):
 			result["type"] = "speak"
+		# If all utterances empty, provide fallback so bubble shows "..." not blank
+		if result.get("utterances", []).is_empty() and cleaned_responses.is_empty():
+			result["utterances"] = ["..."]
 		return result
 
 	# JSON failed — try to extract think + utterances from plain text
 	return _extract_from_plain_text(text, npc_id)
+
+
+## Filter out empty / whitespace-only utterance strings. Returns cleaned array.
+func _filter_utterances(raw: Array) -> Array:
+	var out: Array = []
+	for utt in raw:
+		var s: String = str(utt).strip_edges()
+		if not s.is_empty():
+			out.append(s)
+	return out
 
 
 ## When LLM returns plain text instead of JSON, try to split into think + utterances.

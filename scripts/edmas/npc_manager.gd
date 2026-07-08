@@ -1,13 +1,8 @@
 extends Node
 
 signal npc_registered(npc_id: String, npc: BaseNpc)
-signal npc_removed(npc_id: String)
 signal patient_arrived(npc_id: String, npc: BaseNpc)
 signal patient_discharged(npc_id: String)
-signal triage_started(npc_id: String)
-signal triage_done(npc_id: String, target_room: String)
-signal npc_arrived_at(npc_id: String, location: String)
-signal all_triage_done()
 
 var _npcs: Dictionary = {}
 var _npc_to_id: Dictionary = {}
@@ -67,7 +62,6 @@ func unregister(npc_id: String) -> void:
 	_npc_to_id.erase(npc)
 	_npc_data.erase(npc_id)
 	_ctx.unregister(npc_id)
-	npc_removed.emit(npc_id)
 	if role == "patient":
 		patient_discharged.emit(npc_id)
 	npc.queue_free()

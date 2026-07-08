@@ -36,3 +36,52 @@
 ## 问题9: scrollbar仍然可见
 **原因**: 设了`sb.visible = false`和`sb.modulate = Color(0,0,0,0)`和StyleBoxEmpty，但ScrollContainer的`vertical_scroll_mode = SCROLL_MODE_DISABLED`之后不应该有scrollbar。可能是在`_reflow`里重新获取了scrollbar但没隐藏。
 **修复**: `_build_ui`里不设`SCROLL_MODE_AUTO`。只设`SCROLL_MODE_DISABLED`。删除`_reflow`里的scrollbar获取代码。如果需要自动滚动，用`_scroll.scroll_vertical = _scroll.get_v_scroll_bar().max_value`在_process里设。
+
+---
+
+# 第二轮 playtest 发现的问题 (2026-07-09)
+
+## 问题10: 对话框超3行仍未修复 ( reopened )
+**症状**: 用户报告超3行文字仍然没有被正确裁剪/滚动。
+**根因**: `dialogue_bubble.gd:235` `_reflow()` 用 `row.get_combined_minimum_size().y` 测高度——对 `fit_content=true` 的 RichTextLabel，这个值不可靠（需要至少一帧才能让布局刷新，且 HBoxContainer 的 combined minimum size 来自子节点的 minimum size，不是实际渲染高度）。
+**之前两次失败的修复**:
+1. `fit_content=false` + 固定54px → 1行内容也占54px空白
+2. `fit_content=true` + `get_combined_minimum_size()` → 测量值不可靠，3行限制失效
+**新修复**: 用 `_label.get_content_height()`（RichTextLabel 的实际渲染高度 API）。text 改变后 `await get_tree().process_frame` 一帧再 `_reflow()` 让布局刷新。`_scroll.clip_contents = true` 防御性裁剪。
+**状态**: 修复中
+
+## 问题11: 第二个护士只在第一轮被使用
+**症状**: 5个患者，nurse_001 处理了 patient_001/003/004/005，nurse_002 只处理了 patient_002。日志显示后续患者全部 queue 到 staff_nurse_001。
+**根因 (3层)**:
+1. `scheduler.gd:56` fallback `find_by_role("nurse")` 返回 `matches[0]`（永远是 nurse_001，按注册顺序）
+2. `session.gd:45-52` `try_activate()` 对**捕获的特定 resource** 调 `request()`。患者绑到 nurse_001 后即使 nurse_002 空闲也解不开。
+3. `scheduler.gd:88-98` `_on_resource_state_changed` 重试同一个绑定 resource，不重新扫描池。
+**修复**:
+1. `resource_registry.gd:find_by_role` 改为返回**队列最短**的同类 resource（负载均衡）
+2. `scheduler.gd:_on_resource_state_changed` 重试时如果绑定 resource 仍忙，重新 `find_idle_by_role` 重绑
+3. `session.gd` 增加 `required_role` 字段，让重绑成为可能
+**状态**: 修复中
+
+## 问题12: 绿色患者 (patient_003) 一直卡住
+**症状**: patient_003 + doctor_001 进行了 10+ 轮 LLM 来回，session 一直不结束。最后勉强结束。
+**根因 (4层)**:
+1. `prompt_context.gd:91, 108` doctor prompt 把 `"conversation_done":false` 当格式示例，**没有说明何时翻成 true**
+2. `session.gd:206-213` 安全计时器用 `start_turn == _turn_id` 检查——每轮 LLM 调用都让 turn_id 自增，所以计时器永远不触发
+3. `interaction_session.gd` 没有最大轮数限制
+4. `prompt_context.gd:62-77` 患者 prompt 没有 `conversation_done` 字段——患者无法主动结束对话（设计上由医生决定，但应该明确）
+**修复**:
+1. doctor + triage_nurse prompt 加显式说明：决定处置方案后设 `conversation_done=true`
+2. `interaction_session.gd` 加最大轮数 8（4 医护+4 患者）→ 强制结束，next_role 按当前 goal 决定（triage→doctor，doctor→discharge）
+3. `session.gd:_start_safety_timer` 改用 wall-clock 自激活起经过的时间，不再用 turn_id 比较
+**状态**: 修复中
+
+## 问题13: 结构化输出空 utterances ("utter 1/1: 0 chars")
+**症状**: 日志大量 `[Bubble] utter 1/1: 0 chars`，LLM 返回了 `{"utterances": [""]}` 或 `{"responses": [{"utterances": [""]}]}`，气泡显示空内容。
+**根因 (3层)**:
+1. `npc_fsm.gd:111-119` `_parse_action` JSON 解析成功后直接返回，**不验证 utterance 内容**——空字符串原样通过
+2. `session.gd:162-171` `_collect_utterances` 用 `str(utt)` append，空串不被过滤
+3. `session.gd:149` `if utterances.is_empty()` 只检查数组长度，`[""]` 不是空数组所以 bypass
+**修复**:
+1. `npc_fsm.gd:_parse_action` 解析后遍历 `responses[].utterances` 和 `utterances`，过滤空/whitespace。如果全空，返回 `["..."]`
+2. `session.gd:_collect_utterances` 同样的过滤作为防御
+**状态**: 修复中

@@ -1,6 +1,9 @@
 # Godot editor cache
 /.godot/
 
+# Deepwork session state (orchestrator-only)
+.slim/deepwork/
+
 # Imported assets (auto-generated)
 *.png.import
 *.jpg.import

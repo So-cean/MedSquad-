@@ -9,10 +9,12 @@ enum State { PENDING, WAITING_FOR_RESOURCES, ACTIVE, ENDED }
 const CHARS_PER_SEC: float = 10.0
 const COMPACT_MAX_CHARS: int = 26
 const COMPACT_MIN_TIME: float = 2.2
-const SAFETY_TIMEOUT: float = 15.0
+const SAFETY_TIMEOUT: float = 30.0  # wall-clock seconds since activation
+const MAX_TURNS: int = 8  # hard cap: 4 professional + 4 patient
 
 var participants: Dictionary = {}
 var required_resources: Array = []
+var required_role: String = ""  # role of the required_resources (for rebind)
 var goal: String = ""
 var state: int = State.PENDING
 var result: Dictionary = {}
@@ -29,6 +31,11 @@ func _init(p_participants: Dictionary = {}, p_required_resources: Array = [], p_
 	participants = p_participants
 	required_resources = p_required_resources
 	goal = p_goal
+	# Derive required_role from the first required resource (for rebind logic)
+	if not required_resources.is_empty():
+		var first_res = required_resources[0]
+		if first_res is MedicalResource:
+			required_role = (first_res as MedicalResource).role
 	_session_id = "session_%d" % Time.get_ticks_usec()
 	print("[Session] class registered %s goal=%s" % [_session_id, goal])
 
@@ -42,9 +49,23 @@ func try_activate() -> bool:
 	var patient_id: String = get_patient_id()
 	var waiting: bool = false
 	_resource_ids.clear()
-	for res in required_resources:
+	for i in range(required_resources.size()):
+		var res = required_resources[i]
 		if res == null:
 			continue
+		# Rebind: if the originally-bound resource is busy/queued AND another
+		# same-role resource is idle, swap to the idle one so patients distribute
+		# across multiple staff of the same role instead of all queueing on one.
+		if not required_role.is_empty() and res.is_busy():
+			var reg: Node = Engine.get_main_loop().root.get_node_or_null("/root/ResourceRegistry")
+			if reg and reg.has_method("find_idle_by_role"):
+				var idle_res = reg.find_idle_by_role(required_role)
+				if idle_res and idle_res != res:
+					# Cancel any prior queue position on the old resource
+					if res.has_method("cancel"):
+						res.cancel(patient_id)
+					res = idle_res
+					required_resources[i] = res
 		var reply: Dictionary = res.request(patient_id)
 		_resource_ids.append(res.id)
 		if not reply.get("granted", false):
@@ -162,11 +183,16 @@ func _clear_participant_speech(except_npc: BaseNpc = null) -> void:
 func _collect_utterances(action: Dictionary) -> Array:
 	var result: Array = []
 	for resp in action.get("responses", []):
-		for utt in resp.get("utterances", []):
-			result.append(str(utt))
+		if resp is Dictionary:
+			for utt in (resp as Dictionary).get("utterances", []):
+				var s: String = str(utt).strip_edges()
+				if not s.is_empty():
+					result.append(s)
 	for utt in action.get("utterances", []):
-		result.append(str(utt))
-	if result.is_empty() and not str(action.get("dialogue", "")).is_empty():
+		var s2: String = str(utt).strip_edges()
+		if not s2.is_empty():
+			result.append(s2)
+	if result.is_empty() and not str(action.get("dialogue", "")).strip_edges().is_empty():
 		result.append(str(action.get("dialogue", "")))
 	return result
 
@@ -204,12 +230,16 @@ func _after_display(_npc_id: String, _action: Dictionary) -> void:
 
 
 func _start_safety_timer() -> void:
-	var start_turn: int = _turn_id
+	# Wall-clock timer: fires SAFETY_TIMEOUT seconds after activation, regardless
+	# of how many LLM turns happened. Previous version compared _turn_id which
+	# reset every turn and never fired during active conversation.
+	var start_msec: float = float(Time.get_ticks_msec())
 	await NpcManager.get_tree().create_timer(SAFETY_TIMEOUT).timeout
 	if _ended:
 		return
-	if start_turn == _turn_id and _response_queue.is_empty() and not _displaying:
-		push_warning("[Session] safety timeout, force ending %s" % _session_id)
+	var elapsed: float = (float(Time.get_ticks_msec()) - start_msec) / 1000.0
+	if elapsed >= SAFETY_TIMEOUT:
+		push_warning("[Session] safety timeout (%.1fs), force ending %s" % [elapsed, _session_id])
 		end({"next_step": {"next_role": "discharge", "target_room": "DISCHARGE", "reason": "session timeout", "orders": []}})
 
 

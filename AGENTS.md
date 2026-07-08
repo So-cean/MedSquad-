@@ -6,7 +6,7 @@ Godot 4.7 project. Hospital-themed 2D top-down game.
 
 | Path | Purpose |
 |---|---|
-| `scens/` (note: not `scenes/`) | Godot scenes. Main scene: `scens/room1.tscn` |
+| `scens/` (note: not `scenes/`) | Godot scenes. Main scene: `scens/edmas/DialogueTest.tscn` |
 | `assets/rooms/` | Room background images (CT room, lab room) |
 | `Tilesets/` | Hospital-themed tile sprites (lab, maternity, operation, room) |
 | `assets/doctor.png` | Doctor white player sprite sheet source (128×128, 32×32 frames, 3×3 grid with 8px padding, center empty). Row 0 = down. Row 1 = up. Row 2 = side (idle + walk). Cell (1,2) = side idle. Cells (0,2)/(2,2) = side walk right/left leg. |
@@ -15,7 +15,7 @@ Godot 4.7 project. Hospital-themed 2D top-down game.
 | `character/doctor white idle.png` | Doctor white separate front-facing idle frame (32×32, used as `down_idle.png`) |
 | `character/doctor.png` | Doctor white 128×128 source sheet (3×3 grid, 8px padding, center empty) |
 | `addons/` | Empty — no Godot plugins yet |
-| `scripts/` | GDScript source files (`player.gd`, `nurse.gd`, `scrubs_green.gd`, `nurse_blue.gd`, `scrubs_blue.gd`, `nurse_green.gd`) |
+| `scripts/` | GDScript source files — `player.gd`, `base_npc.gd`, `camera.gd`, `nurse.gd`, `scrubs_green.gd`, `nurse_blue.gd`, `scrubs_blue.gd`, `nurse_green.gd`, `patient_green.gd`, `patient_blue.gd`, `ui/virtual_joystick.gd`, `dialogue/` (8 files), `edmas/` (12 files) |
 | `assets/nurse_frames/` | Nurse white 8-direction 32×32 frame PNGs — **separate idle/walk sheets**: idle_*.png (legs together) + walk_*_a.png (legs apart) + idle_down.png (front-facing idle) |
 | `assets/scrubs_green_frames/` | Scrubs green 8-direction 32×32 frame PNGs — **separate idle/walk sheets**: idle_*.png (legs together) + walk_*_a.png (legs apart) + idle_down.png (front-facing idle) |
 | `assets/nurse_blue_frames/` | Nurse blue 8-direction 32×32 frame PNGs — **separate idle/walk sheets** (same format) + idle_down |
@@ -38,20 +38,21 @@ Godot 4.7 project. Hospital-themed 2D top-down game.
 ## Key facts
 
 - **Engine**: Godot 4.7 — no npm, no build scripts, no CI. Editor-only workflow.
-- **Main scene**: `res://scens/room1.tscn` (uid `dj5e7k2td4sek`). Contains a CT room and lab room with collision shapes + TileMapLayer floor.
-- **GDScript files** live in `scripts/`. Currently has `player.gd`, `nurse.gd`, `scrubs_green.gd`, `nurse_blue.gd`, `scrubs_blue.gd`, and `nurse_green.gd`.
+- **Main scene**: `res://scens/edmas/DialogueTest.tscn` (confirmed in `project.godot` `run/main_scene`).
+- **GDScript files** live in `scripts/`. Currently has `player.gd`, `nurse.gd`, `scrubs_green.gd`, `nurse_blue.gd`, `scrubs_blue.gd`, `nurse_green.gd`, `patient_green.gd`, `patient_blue.gd`, `camera.gd`, `base_npc.gd`, `ui/virtual_joystick.gd`, `dialogue/` (8 files), `edmas/` (12 files).
 - **Animations**: Uses `AnimatedSprite2D` with code-generated `SpriteFrames` in `_ready()`. Player uses individual sliced 32×32 PNGs. All NPCs now use separate idle/walk 8-direction sheets with 2-frame idle→walk_a cycles at 6fps. Per-direction idle/walk animations with manual `play()`/`stop()` control.
 - **NPC system**: NPCs have profession-specific scripts. Nurse white NPC (`nurse.gd`) uses 8-direction frames from `assets/nurse_frames/`. Scrubs green NPC (`scrubs_green.gd`) uses 8-direction frames from `assets/scrubs_green_frames/`. Nurse blue NPC (`nurse_blue.gd`) uses 8-direction frames from `assets/nurse_blue_frames/`. Scrubs blue NPC (`scrubs_blue.gd`) uses 8-direction frames from `assets/scrubs_blue_frames/`. Nurse green NPC (`nurse_green.gd`) uses separate idle/walk 8-direction sheets from `assets/nurse_green_frames/`. All NPCs now use separate idle/walk sheets with play() animation.
 - **Player**: Doctor white. Pre-sliced frames at `assets/doctor_frames/` loaded directly. `down_idle.png` sourced from `character/doctor white idle.png` (32×32 front-facing). Walk_down frames from `character/doctor walk.png` (8px padding, 3×3 grid, cell row 0 = down walk, cells (0,2)+(1,2) = up walk). Side/right uses doctor.png row 2. Left uses flip_h.
-- **Nurse white**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). Row 0 = UP/back view, Row 2 = DOWN/front view. Uses separate idle/walk sheets — idle (legs together) + walk_a (legs apart) 2-frame cycle. Wanders in any of 8 directions.
-- **Scrubs green**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse green: idle (legs together) + walk_a (legs apart) 2-frame cycle. Wanders in any of 8 directions.
-- **Nurse blue**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse white: idle (legs together) + walk_a (legs apart) 2-frame cycle. Wanders in any of 8 directions.
-- **Scrubs blue**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse white: idle (legs together) + walk_a (legs apart) 2-frame cycle. Wanders in any of 8 directions.
-- **Nurse green**: 8-direction NPC using **separate idle/walk 8-direction sheets**. Idle frames (legs together) from `nurse green idle 8dir.png`, walk frames (legs apart) from `nurse green walk 8dir.png`. Separate idle_down.png for front-facing idle. Walk animation: idle → walk_a (flipped) 2-frame cycle at 6fps. Idle/walk show different poses per direction. Wanders in any of 8 directions.
+- **Nurse white**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). Row 0 = UP/back view, Row 2 = DOWN/front view. Uses separate idle/walk sheets — idle (legs together) + walk_a (legs apart) 2-frame cycle. Stationary by default (`can_wander=false`). Wanders only if `can_wander=true`.
+- **Scrubs green**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse green: idle (legs together) + walk_a (legs apart) 2-frame cycle. Stationary by default (`can_wander=false`). Wanders only if `can_wander=true`.
+- **Nurse blue**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse white: idle (legs together) + walk_a (legs apart) 2-frame cycle. Stationary by default (`can_wander=false`). Wanders only if `can_wander=true`.
+- **Scrubs blue**: 8-direction NPC with separate idle_down frame (front-facing, 32×32) and 8 directional frames from 96×96 sheet (3×3 tight grid). **Updated to separate idle/walk sheets** — same animation as nurse white: idle (legs together) + walk_a (legs apart) 2-frame cycle. Stationary by default (`can_wander=false`). Wanders only if `can_wander=true`.
+- **Nurse green**: 8-direction NPC using **separate idle/walk 8-direction sheets**. Idle frames (legs together) from `nurse green idle 8dir.png`, walk frames (legs apart) from `nurse green walk 8dir.png`. Separate idle_down.png for front-facing idle. Walk animation: idle → walk_a (flipped) 2-frame cycle at 6fps. Idle/walk show different poses per direction. Stationary by default (`can_wander=false`). Wanders only if `can_wander=true`.
 - **Collision setup**: Existing walls use StaticBody2D (layer 1). Player and NPCs use CharacterBody2D with layer=2, mask=3 (collides with walls + other characters).
 - **No addons, no codegen, no migrations.** Straightforward 2D scene tree.
 - **NPC attribution**: Sprites by Jephed (Game Between The Lines). Credit when shipping.
-- **No `.gitignore` yet.** If initializing git, add `/.godot/` to avoid committing the editor cache.
+- **FontRegistry**: Static helper (`class_name FontRegistry`) at `scripts/dialogue/font_registry.gd`. Provides `FontRegistry.get_cn_font() → FontVariation` with caching. Used by dialogue_bubble, npc_hover_card, and dialogue_manager instead of duplicated font-loading code.
+- **Nav agent lazy init**: `BaseNpc._ensure_nav_agent()` centralizes NavigationAgent2D creation + signal wiring (velocity_computed, target_reached, navigation_finished). Called from `_ready()`, `walk_to()`, and `walk_to_pos()`.
 
 ## Workflow
 
@@ -72,3 +73,28 @@ Godot 4.7 project. Hospital-themed 2D top-down game.
 
 - **`scens/` is intentionally misspelled** (not `scenes/`). Do not rename it.
 - **Hospital theme** — lab, maternity, operation room, and patient room tilesets are the visual vocabulary.
+
+## Auto-record discipline (mandatory)
+
+Every work session must keep two markdown files in sync. Treat this as part of "done", not optional cleanup.
+
+### `issues.md` — problems + solutions
+- Every bug observed (in logs, in playtests, in code review) gets an entry: symptom, root cause, fix, status.
+- Update the entry when the fix lands; mark `fixed` only after compile + scenario run confirms it.
+- Never delete historical entries — append a `## Resolved` subsection if the list gets long.
+
+### `REQUIREMENTS.md` — current requirements
+- Every new feature, behavior rule, or spec change is summarized here.
+- If two requirements conflict (e.g. "bubble auto-height" vs "bubble fixed 3-line clip"), **do not guess** —
+  stop and `question` the user with both options and the trade-off, then write the chosen one into REQUIREMENTS.md.
+- Requirements gathered from chat must be merged into the existing section, not appended as new top-level duplicates.
+
+### Workflow
+1. User reports a problem or asks for a feature → write to `issues.md` (problem) or `REQUIREMENTS.md` (need) **first**.
+2. Plan the work, fix/refactor.
+3. After verification, update `issues.md` status to `fixed` with the commit hash.
+4. If a fix changes behavior spec, also update `REQUIREMENTS.md`.
+
+### Conflict resolution
+When requirements contradict each other, the orchestrator must `question` the user before implementing. Never silently pick one. Record the resolved decision in REQUIREMENTS.md with a short rationale.
+

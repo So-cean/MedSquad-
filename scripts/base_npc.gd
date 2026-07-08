@@ -119,14 +119,7 @@ func _ready() -> void:
 	_memory = MemoryStore.new(name, get_npc_name())
 
 	# Setup navigation agent (created lazily if needed)
-	var nav: Node = get_node_or_null("NavigationAgent2D")
-	if nav is NavigationAgent2D:
-		_nav_agent = nav
-		_nav_agent.path_desired_distance = 8.0
-		_nav_agent.target_desired_distance = 8.0
-		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
-		_nav_agent.target_reached.connect(_on_nav_target_reached)
-		_nav_agent.navigation_finished.connect(_on_nav_finished)
+	_ensure_nav_agent()
 
 	# Add to discovery group
 	add_to_group(get_npc_group())
@@ -262,13 +255,18 @@ func _physics_process(delta: float) -> void:
 
 # ── Navigation ───────────────────────────────────────────────
 
-## Walk to a named location (e.g. "TRIAGE", "ED_RESUS").
-## Auto-creates NavigationAgent2D if missing.
-func walk_to(location_name: String) -> void:
-	_walk_target = location_name
+## Ensure NavigationAgent2D exists with signals connected.
+## Creates lazily if missing. Returns the existing or newly created agent.
+func _ensure_nav_agent() -> NavigationAgent2D:
+	if _nav_agent:
+		return _nav_agent
 
-	# Auto-create NavigationAgent2D if not present
-	if not _nav_agent:
+	# Check for existing NavigationAgent2D child
+	var existing: Node = get_node_or_null("NavigationAgent2D")
+	if existing is NavigationAgent2D:
+		_nav_agent = existing as NavigationAgent2D
+	else:
+		# Try MapSystem first
 		var map_sys: Node = get_node_or_null("/root/MapSystem")
 		if map_sys and map_sys.has_method("ensure_nav_agent"):
 			_nav_agent = map_sys.ensure_nav_agent(self)
@@ -280,17 +278,29 @@ func walk_to(location_name: String) -> void:
 			_nav_agent.target_desired_distance = 8.0
 			add_child(_nav_agent)
 
+	if _nav_agent:
+		_nav_agent.path_desired_distance = 8.0
+		_nav_agent.target_desired_distance = 8.0
+		if not _nav_agent.velocity_computed.is_connected(_on_nav_velocity_computed):
+			_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
+		if not _nav_agent.target_reached.is_connected(_on_nav_target_reached):
+			_nav_agent.target_reached.connect(_on_nav_target_reached)
+		if not _nav_agent.navigation_finished.is_connected(_on_nav_finished):
+			_nav_agent.navigation_finished.connect(_on_nav_finished)
+
+	return _nav_agent
+
+
+## Walk to a named location (e.g. "TRIAGE", "ED_RESUS").
+## Auto-creates NavigationAgent2D if missing.
+func walk_to(location_name: String) -> void:
+	_walk_target = location_name
+
+	# Auto-create NavigationAgent2D if not present
+	_ensure_nav_agent()
 	if not _nav_agent:
 		push_warning("BaseNpc: cannot create NavigationAgent2D")
 		return
-
-	# Connect signals if not already
-	if not _nav_agent.velocity_computed.is_connected(_on_nav_velocity_computed):
-		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
-	if not _nav_agent.target_reached.is_connected(_on_nav_target_reached):
-		_nav_agent.target_reached.connect(_on_nav_target_reached)
-	if not _nav_agent.navigation_finished.is_connected(_on_nav_finished):
-		_nav_agent.navigation_finished.connect(_on_nav_finished)
 
 	var target: Vector2 = HospitalMapData.get_location(location_name)
 	_nav_agent.target_position = target
@@ -332,15 +342,11 @@ func _on_nav_target_reached() -> void:
 	_update_anim()
 
 
-## Signal emitted when NPC arrives at a named location via walk_to().
-signal arrived_at(location: String)
-
 func _on_nav_finished() -> void:
 	_is_walking = false
 	velocity = Vector2.ZERO
 	_state = 0
 	if not _walk_target.is_empty():
-		arrived_at.emit(_walk_target)
 		_walk_target = ""
 	_update_anim()
 
@@ -398,24 +404,9 @@ var _face_target_npc: BaseNpc = null
 
 ## Walk to a raw position (not a named location).
 func walk_to_pos(target: Vector2) -> void:
-	if not _nav_agent:
-		var map_sys: Node = get_node_or_null("/root/MapSystem")
-		if map_sys and map_sys.has_method("ensure_nav_agent"):
-			_nav_agent = map_sys.ensure_nav_agent(self)
-		else:
-			_nav_agent = NavigationAgent2D.new()
-			_nav_agent.name = "NavigationAgent2D"
-			_nav_agent.path_desired_distance = 8.0
-			_nav_agent.target_desired_distance = 8.0
-			add_child(_nav_agent)
+	_ensure_nav_agent()
 	if not _nav_agent:
 		return
-	if not _nav_agent.velocity_computed.is_connected(_on_nav_velocity_computed):
-		_nav_agent.velocity_computed.connect(_on_nav_velocity_computed)
-	if not _nav_agent.target_reached.is_connected(_on_nav_target_reached):
-		_nav_agent.target_reached.connect(_on_nav_target_reached)
-	if not _nav_agent.navigation_finished.is_connected(_on_nav_finished):
-		_nav_agent.navigation_finished.connect(_on_nav_finished)
 	_nav_agent.target_position = target
 	_is_walking = true
 	_state = 1

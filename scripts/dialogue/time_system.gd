@@ -7,8 +7,6 @@ extends Node
 ##
 ## Access via autoload:  TimeSystem.get_time_str()
 
-signal time_advanced(hour: int, minute: int, day: int)
-
 const SECONDS_PER_GAME_MINUTE := 1.0
 
 var _accum: float = 0.0
@@ -32,8 +30,6 @@ func _tick() -> void:
 		if _hour >= 24:
 			_hour = 0
 			_day += 1
-	time_advanced.emit(_hour, _minute, _day)
-
 
 ## e.g. "08:30"
 func get_time_str() -> String:

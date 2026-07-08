@@ -9,7 +9,6 @@ extends Node
 ## resources. NpcManager still runs the current triage ping-pong loop.
 ## In Step 4 the Scheduler will call request()/release() around Sessions.
 
-signal resource_registered(res)
 signal resource_state_changed(res_id: String)
 
 # resource_id → MedicalResource
@@ -70,7 +69,6 @@ func _register_static(entry: Dictionary) -> void:
 	)
 	_wire_resource_signals(res)
 	_resources[id] = res
-	resource_registered.emit(res)
 
 
 func _sync_staff_from_npc_manager() -> void:
@@ -107,7 +105,6 @@ func _register_staff(npc_id: String, npc: Object, role: String) -> void:
 	_wire_resource_signals(res)
 	_resources[res_id] = res
 	_npc_to_resource[npc_id] = res_id
-	resource_registered.emit(res)
 	print("[ResourceRegistry] Registered staff %s role=%s" % [res_id, role])
 
 
@@ -170,11 +167,20 @@ func find_idle_by_role(role: String) -> MedicalResource:
 
 
 ## Find any resource matching a role (busy or not) — for queueing.
+## Picks the one with the SHORTEST queue so load is balanced across staff
+## of the same role (e.g. multiple nurses). Falls back to first match.
 func find_by_role(role: String) -> MedicalResource:
 	var matches: Array = get_by_role(role)
 	if matches.is_empty():
 		return null
-	return matches[0]
+	var best: MedicalResource = matches[0]
+	var best_q: int = best.queue_size() + (1 if best.is_busy() else 0)
+	for r in matches:
+		var load: int = r.queue_size() + (1 if r.is_busy() else 0)
+		if load < best_q:
+			best = r
+			best_q = load
+	return best
 
 
 func print_status() -> void:

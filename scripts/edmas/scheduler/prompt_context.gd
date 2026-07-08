@@ -87,9 +87,10 @@ static func _build_triage_nurse_prompt(self_npc: BaseNpc, target_npc: BaseNpc, m
 		+ build_resource_snapshot() + "\n"
 		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，您哪里不舒服？症状多久了？”，不要诊断，不要安排去医生或离院。\n"
 		+ "目标：3-5轮内完成分诊。症状严重时 next_step.next_role=doctor，目标诊室 target_room=DOCTOR 或 ED_RESUS；轻症可 discharge。\n"
+		+ "结束规则：当你已经决定下一步（next_role=doctor 或 discharge）时，把你最后这句话标记为 conversation_done=true。在收集信息过程中保持 conversation_done=false。最多8轮必须结束。\n"
 		+ "必须只返回 JSON：\n"
 		+ '{"think":"","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
-		+ 'think可选：不填或填分诊推理/资源判断，不要重复已知事实。'
+		+ 'think可选：不填或填分诊推理/资源判断，不要重复已知事实。utterances 不能为空字符串。'
 	)
 
 
@@ -104,7 +105,8 @@ static func _build_doctor_prompt(self_npc: BaseNpc, target_npc: BaseNpc, memory:
 		+ "如果尚未采集到患者描述，第一句必须是问候和开放式询问，例如“您好，我是接诊医生，请说一下哪里不舒服？”，不要诊断，不要直接离院。\n"
 		+ "问诊要短：先问病史/既往史/过敏，再决定处置。3-5轮内完成。\n"
 		+ "orders 白名单：ct_scan / lab_test / ecg。Step 4A 阶段无设备 session，若输出 orders，scheduler 会 warning 后 discharge。\n"
+		+ "结束规则：当你已经决定处置方案（next_role=discharge 或转科）时，把你最后这句话标记为 conversation_done=true。在问诊过程中保持 conversation_done=false。最多8轮必须结束。\n"
 		+ "必须只返回 JSON：\n"
 		+ '{"think":"","responses":[{"target":"%s","utterances":["对患者说1句话"],"conversation_done":false}],"next_step":null}\n' % patient_id
-		+ 'think可选：不填或填诊断推理，不要重复已知事实。'
+		+ 'think可选：不填或填诊断推理，不要重复已知事实。utterances 不能为空字符串。'
 	)

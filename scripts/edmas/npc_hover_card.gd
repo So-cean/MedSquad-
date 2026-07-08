@@ -28,10 +28,7 @@ func _ready() -> void:
 
 
 func _load_font() -> void:
-	var tex: FontFile = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
-	if tex:
-		_cn_font = FontVariation.new()
-		_cn_font.base_font = tex
+	_cn_font = FontRegistry.get_cn_font()
 
 
 func _build_ui() -> void:

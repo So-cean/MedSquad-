@@ -1,6 +1,9 @@
 extends Node
 
 ## Global dialogue orchestrator (autoload).
+
+# Force-load FontRegistry before this script parses (autoload scripts load early).
+const __font_registry := preload("res://scripts/dialogue/font_registry.gd")
 ##
 ## Owns: bubble pool + NPC hover card.
 ## Each frame: polls NPCs for dialogue entries, positions bubbles.
@@ -22,10 +25,8 @@ func _ready() -> void:
 	add_child(_layer)
 
 	# Chinese font for all UI
-	var tex: FontFile = load("res://assets/fonts/NotoSansSC-VF.ttf") as FontFile
-	if tex:
-		var fv: FontVariation = FontVariation.new()
-		fv.base_font = tex
+	var fv: FontVariation = FontRegistry.get_cn_font()
+	if fv:
 		var dt: Theme = ThemeDB.get_default_theme()
 		dt.default_font = fv
 
