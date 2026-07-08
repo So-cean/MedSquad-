@@ -10,7 +10,7 @@ const DEFAULT: Dictionary = {
 	"devices": {},
 	"nurse_names": ["李分诊", "王分诊"],
 	"doctor_names": ["张医生", "赵医生"],
-	"nurse_positions": [Vector2(830, 470), Vector2(880, 470)],
+	"nurse_positions": [Vector2(830, 470), Vector2(930, 470)],
 	"doctor_positions": [Vector2(1330, 500), Vector2(340, 200)],
 	"patient_pool": [
 		{"主诉": "头痛", "症状": "前额胀痛,恶心畏光", "持续时间": "三天"},

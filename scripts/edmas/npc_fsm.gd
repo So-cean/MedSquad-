@@ -15,10 +15,19 @@ const MODEL: String = "DeepSeek-V4-Flash"
 
 var _in_flight: Dictionary = {}  # npc_id → HTTPRequest (in-flight only)
 var _key_idx: int = 0
+var _last_request_time: float = 0.0
+const MIN_REQUEST_INTERVAL: float = 0.5  # throttle between requests
 
 
 ## Fire an LLM request for an NPC. Emits action_ready on completion.
+## Throttled to avoid hammering the API.
 func request(npc_id: String, prompt: String) -> void:
+	# Throttle: wait if too soon after last request
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if now - _last_request_time < MIN_REQUEST_INTERVAL:
+		await get_tree().create_timer(MIN_REQUEST_INTERVAL - (now - _last_request_time)).timeout
+	_last_request_time = Time.get_ticks_msec() / 1000.0
+
 	var key: String = GITEE_KEYS[_key_idx % GITEE_KEYS.size()]
 	_key_idx = (_key_idx + 1) % GITEE_KEYS.size()
 

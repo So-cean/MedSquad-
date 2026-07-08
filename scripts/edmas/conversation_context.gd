@@ -60,9 +60,11 @@ func on_response(npc_id: String, action: Dictionary, partner_id: String = "") ->
 		var text: String = str(utterances[0]) if not utterances.is_empty() else ""
 		if text.is_empty():
 			continue
-		npc.get_memory().add_dialogue(npc.get_npc_name(), target_id, think, text, 5, [])
+		# CRITICAL: use npc_id (not display name) for speaker and listener
+		# so get_context_for_partner(npc_id) can find entries
+		npc.get_memory().add_dialogue(npc_id, target_id, think, text, 5, [])
 		if target_npc:
-			target_npc.get_memory().add_dialogue(npc_id, target_npc.get_npc_name(), think, text, 5, [])
+			target_npc.get_memory().add_dialogue(npc_id, target_id, think, text, 5, [])
 		if resp.get("conversation_done", false):
 			var role: String = _npcs.get(target_id, {}).get("role", "")
 			var done_id: String = target_id if role == "patient" else partner_id
