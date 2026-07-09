@@ -258,3 +258,22 @@ Scheduler dispatch doctor session
 - 不重复声明父类已有的成员
 - 协程里不用`get_process_delta_time()`（返回0），用`Time.get_ticks_msec()`
 - _physics_process里不用`get_process_delta_time()`，用`get_physics_process_delta_time()`
+
+## 十一、新增 NPC（4 个）
+
+源 PNG 已在 `character/` 目录：
+- `labrad blue.png` (32×32) + `labrad blue idle 8dir.png` (96×96) + `labrad blud walk 8dir.png` (96×96) ← 注意文件名拼写"blud"
+- `doctor green.png` (32×32) + `doctor green idle 8dir.png` (96×96) + `doctor green walk 8dir.png` (96×96)（用户后续补齐了 8dir 表）
+- `qa gray.png` (32×32) + `qa gray idle 8dir.png` (96×96) + `qa gray walk 8dir.png` (96×96)
+- `doctor red.png` (32×32) + `doctor red idle 8dir.png` (96×96) + `doctor red walk 8dir.png` (96×96)
+
+已完成：
+1. ✅ 96×96 idle/walk 8方向表切片成 32×32 PNG，存到 `assets/labrad_blue_frames/`、`assets/qa_gray_frames/`、`assets/doctor_red_frames/`、`assets/doctor_green_frames/`（每目录 16 个 PNG：1 idle_down + 7 idle 方向 + 8 walk 方向）
+2. ✅ 切片脚本 `tools/slice_npc_sheets.py` — 可复用于未来 NPC。网格映射已对照现有 `nurse_frames` 验证（7/8 匹配，第 8 个 idle_down 是独立帧不从表切）
+3. ✅ 4 个 prefab 场景 `scens/labrad_blue.tscn`、`scens/qa_gray.tscn`、`scens/doctor_red.tscn`、`scens/doctor_green.tscn`，全部用 `map_npc.gd` + `@export`
+4. ✅ 角色定位：labrad blue = 检验员(technician) / qa gray = 质控员(technician) / doctor red = 医生(doctor) / doctor green = 医生(doctor)
+5. ✅ 中文显示名：检验员蓝 / 质控员灰 / 急诊医生红 / 急诊医生绿
+6. ✅ walk_flip = []（医护人员，不需要 up/down flip）
+7. ✅ ScenarioConfig.DEFAULT 未改（按用户要求只做资源）
+8. ✅ AGENTS.md 已更新记录 4 个新 NPC + 切片脚本
+9. ✅ `--import` 验证通过：64 个 PNG 全部正常导入，4 个 prefab 无报错
