@@ -86,3 +86,31 @@ npc_frames_dir = "res://assets/patient_green_frames/"
 script = ExtResource("3")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_Patient2/InteractionZone"]
 shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_DoctorRed" type="CharacterBody2D" parent="."]
+position = Vector2(440, 220)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "急诊医生红"
+npc_frames_dir = "res://assets/doctor_red_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_DoctorRed"]
+[node name="InteractionZone" type="Area2D" parent="NPC_DoctorRed"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_DoctorRed/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_DoctorGreen" type="CharacterBody2D" parent="."]
+position = Vector2(1230, 500)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "急诊医生绿"
+npc_frames_dir = "res://assets/doctor_green_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_DoctorGreen"]
+[node name="InteractionZone" type="Area2D" parent="NPC_DoctorGreen"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_DoctorGreen/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")

@@ -62,7 +62,7 @@ NPCS = {
     "labrad_blue": {
         "idle_standalone": "labrad blue.png",
         "idle_sheet": "labrad blue idle 8dir.png",
-        "walk_sheet": "labrad blud walk 8dir.png",  # typo "blud" in source
+        "walk_sheet": "labrad blue walk 8dir.png",
     },
     "qa_gray": {
         "idle_standalone": "qa gray.png",

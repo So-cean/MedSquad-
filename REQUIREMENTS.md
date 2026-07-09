@@ -262,7 +262,7 @@ Scheduler dispatch doctor session
 ## 十一、新增 NPC（4 个）
 
 源 PNG 已在 `character/` 目录：
-- `labrad blue.png` (32×32) + `labrad blue idle 8dir.png` (96×96) + `labrad blud walk 8dir.png` (96×96) ← 注意文件名拼写"blud"
+- `labrad blue.png` (32×32) + `labrad blue idle 8dir.png` (96×96) + `labrad blue walk 8dir.png` (96×96)
 - `doctor green.png` (32×32) + `doctor green idle 8dir.png` (96×96) + `doctor green walk 8dir.png` (96×96)（用户后续补齐了 8dir 表）
 - `qa gray.png` (32×32) + `qa gray idle 8dir.png` (96×96) + `qa gray walk 8dir.png` (96×96)
 - `doctor red.png` (32×32) + `doctor red idle 8dir.png` (96×96) + `doctor red walk 8dir.png` (96×96)

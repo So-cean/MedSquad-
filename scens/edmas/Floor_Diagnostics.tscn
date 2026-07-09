@@ -56,3 +56,17 @@ npc_frames_dir = "res://assets/scrubs_blue_frames/"
 script = ExtResource("3")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_LabNurse/InteractionZone"]
 shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_LabradBlue" type="CharacterBody2D" parent="."]
+position = Vector2(620, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "检验员蓝"
+npc_frames_dir = "res://assets/labrad_blue_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_LabradBlue"]
+[node name="InteractionZone" type="Area2D" parent="NPC_LabradBlue"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_LabradBlue/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")

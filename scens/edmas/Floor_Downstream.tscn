@@ -44,3 +44,17 @@ npc_frames_dir = "res://assets/nurse_green_frames/"
 script = ExtResource("3")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_WardNurse/InteractionZone"]
 shape = SubResource("CircleShape2D_interact")
+
+[node name="NPC_QaGray" type="CharacterBody2D" parent="."]
+position = Vector2(900, 550)
+scale = Vector2(2.5, 2.5)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+npc_display_name = "质控员灰"
+npc_frames_dir = "res://assets/qa_gray_frames/"
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="NPC_QaGray"]
+[node name="InteractionZone" type="Area2D" parent="NPC_QaGray"]
+script = ExtResource("3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC_QaGray/InteractionZone"]
+shape = SubResource("CircleShape2D_interact")
