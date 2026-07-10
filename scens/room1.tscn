@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://c7axm0q0eas8e" path="res://assets/rooms/ct-room.jpeg" id="1_pwlw3"]
 [ext_resource type="Texture2D" uid="uid://chpsx7moch231" path="res://assets/rooms/lab-room.png" id="2_v8i64"]
+[ext_resource type="Texture2D" path="res://assets/maps/edmas/map1_v2.png" id="3_edmas_map1"]
 [ext_resource type="PackedScene" path="res://scens/player.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scens/nurse.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scens/scrubs_green.tscn" id="5"]
@@ -10,6 +11,9 @@
 [ext_resource type="PackedScene" path="res://scens/nurse_green.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scens/patient_blue.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scens/patient_green.tscn" id="10"]
+[ext_resource type="Script" path="res://scripts/edmas/npc_manager.gd" id="11"]
+[ext_resource type="Script" path="res://scripts/edmas/npc_hover_card.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/edmas/dialogue/session_manager.gd" id="13"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g0d10"]
 size = Vector2(572.25, 164.25)
@@ -23,9 +27,17 @@ size = Vector2(189, 183)
 [sub_resource type="TileSet" id="TileSet_ir26d"]
 
 [node name="Room1" type="Node2D" unique_id=1406564166]
+scale = Vector2(0.6886, 0.6886)
+
+[node name="EDCoreMapSprite" type="Sprite2D" parent="." unique_id=2047489001]
+texture = ExtResource("3_edmas_map1")
+position = Vector2(0, 0)
+centered = false
+z_index = -100
 
 [node name="Node2D" type="Node2D" parent="." unique_id=1585489688]
 position = Vector2(4, 27)
+visible = false
 
 [node name="CTRoom" type="Sprite2D" parent="Node2D" unique_id=1748481222]
 position = Vector2(290, 343)
@@ -33,6 +45,8 @@ texture = ExtResource("1_pwlw3")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="Node2D/CTRoom" unique_id=212186468]
 position = Vector2(-196, 237)
+collision_layer = 0
+collision_mask = 0
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Node2D/CTRoom/StaticBody2D" unique_id=1843140042]
 position = Vector2(195.875, -525.125)
@@ -47,6 +61,7 @@ position = Vector2(-1.5, 39.5)
 shape = SubResource("RectangleShape2D_hkyky")
 
 [node name="Node2D2" type="Node2D" parent="." unique_id=1998804961]
+visible = false
 
 [node name="LabRoom" type="Sprite2D" parent="Node2D2" unique_id=652825644]
 position = Vector2(944, 375)
@@ -54,6 +69,8 @@ texture = ExtResource("2_v8i64")
 
 [node name="StaticBody2D2" type="StaticBody2D" parent="Node2D2/LabRoom" unique_id=1956255715]
 position = Vector2(-872, 234)
+collision_layer = 0
+collision_mask = 0
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Node2D2/LabRoom/StaticBody2D2" unique_id=864933520]
 position = Vector2(871, -521)
@@ -69,6 +86,7 @@ shape = SubResource("RectangleShape2D_hkyky")
 
 [node name="Floor" type="TileMapLayer" parent="." unique_id=1403078717]
 tile_set = SubResource("TileSet_ir26d")
+visible = false
 
 [node name="Player" parent="." instance=ExtResource("3")]
 position = Vector2(400, 350)
@@ -93,3 +111,20 @@ position = Vector2(450, 450)
 
 [node name="PatientGreen" parent="." instance=ExtResource("10")]
 position = Vector2(550, 450)
+
+[node name="RoleRuntime" type="Node" parent="."]
+script = ExtResource("11")
+hover_card_path = NodePath("../RoleOverlay/NpcHoverCard")
+
+[node name="RoleOverlay" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="NpcHoverCard" type="PanelContainer" parent="RoleOverlay"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 300.0
+offset_bottom = 200.0
+script = ExtResource("12")
+
+[node name="SessionRuntime" type="Node" parent="."]
+script = ExtResource("13")
