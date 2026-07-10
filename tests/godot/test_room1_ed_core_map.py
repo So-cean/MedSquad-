@@ -35,6 +35,10 @@ def test_room1_retains_runtime_shell_and_camera_entry():
     assert "Camera2D" in player_text
     assert "res://scripts/camera.gd" in player_text
 
+    camera_text = (ROOT / "scripts" / "camera.gd").read_text(encoding="utf-8")
+    for token in ("overview_mode", "_fit_map_to_view", "EDCoreMapSprite", "get_viewport_rect().size", "set_as_top_level(true)"):
+        assert token in camera_text
+
     project_text = (ROOT / "project.godot").read_text(encoding="utf-8")
     assert 'DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"' in project_text
     assert 'run/main_scene="res://scens/room1.tscn"' in project_text

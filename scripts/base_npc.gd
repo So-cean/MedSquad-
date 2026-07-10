@@ -75,6 +75,9 @@ var _state: int = 0  # 0 = idle, 1 = walking
 var _timer: float = 0.0
 var _dir_idx: int = 0
 var _anim: AnimatedSprite2D
+var _wander_enabled: bool = true
+var _guided_path: Array[Vector2] = []
+var _guided_speed: float = 90.0
 
 # ── Dialogue ──
 var _current_entry: DialogueEntry = null
@@ -179,12 +182,18 @@ func _build_frames() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _physics_process(delta: float) -> void:
+	if not _guided_path.is_empty():
+		_follow_guided_path(delta)
+		move_and_slide()
+		_update_anim()
+		return
+
 	_timer -= delta
 
 	match _state:
 		0:
 			velocity = Vector2.ZERO
-			if _timer <= 0.0:
+			if _wander_enabled and _timer <= 0.0:
 				_start_move()
 		1:
 			velocity = _dirs[_dir_idx] * speed
@@ -239,6 +248,9 @@ func _start_idle() -> void:
 
 
 func _start_move() -> void:
+	if not _wander_enabled:
+		_start_idle()
+		return
 	_state = 1
 	_dir_idx = randi_range(0, 7)
 	_timer = randf_range(move_min, move_max)
@@ -246,6 +258,55 @@ func _start_move() -> void:
 
 func _pick_timer() -> void:
 	_timer = randf_range(idle_min, idle_max)
+
+
+func set_wander_enabled(enabled: bool) -> void:
+	_wander_enabled = enabled
+	if not _wander_enabled and _guided_path.is_empty():
+		_start_idle()
+
+
+func move_to(target_position: Vector2) -> void:
+	move_along_path([target_position])
+
+
+func move_along_path(path_points: Array[Vector2]) -> void:
+	_guided_path.clear()
+	for point: Vector2 in path_points:
+		_guided_path.append(point)
+	_wander_enabled = false
+	if _guided_path.is_empty():
+		_start_idle()
+
+
+func _follow_guided_path(_delta: float) -> void:
+	var target: Vector2 = _guided_path[0]
+	var offset: Vector2 = target - position
+	if offset.length() <= 4.0:
+		_guided_path.remove_at(0)
+		if _guided_path.is_empty():
+			position = target
+			velocity = Vector2.ZERO
+			_start_idle()
+			return
+		target = _guided_path[0]
+		offset = target - position
+	var direction: Vector2 = offset.normalized()
+	velocity = direction * _guided_speed
+	_dir_idx = _dir_idx_from_vector(direction)
+	_state = 1
+
+
+func _dir_idx_from_vector(direction: Vector2) -> int:
+	var best_idx: int = 0
+	var best_dot: float = -2.0
+	for idx_value: Variant in _dirs.keys():
+		var idx: int = int(idx_value)
+		var dot: float = direction.dot((_dirs[idx] as Vector2).normalized())
+		if dot > best_dot:
+			best_dot = dot
+			best_idx = idx
+	return best_idx
 
 
 # ═══════════════════════════════════════════════════════════════════════

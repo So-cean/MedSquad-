@@ -17,6 +17,7 @@ var _last_speaker: BaseNpc = null
 var _last_listener: BaseNpc = null
 var _npc_map: Dictionary = {}  # npc_name → BaseNpc
 var _paused := false
+var auto_restart_flows: bool = false
 
 
 func _ready() -> void:
@@ -93,7 +94,9 @@ func _execute_next() -> void:
 		if _last_speaker:
 			_last_speaker.stop_speaking()
 			_last_speaker = null
-		_tree_timer(2.0, _start_random_flow)
+		_paused = true
+		if auto_restart_flows:
+			_tree_timer(2.0, _start_random_flow)
 		return
 
 	var step: Dictionary = steps[_flow_idx]
@@ -108,9 +111,12 @@ func _execute_next() -> void:
 	var listener := _find_npc(listener_name)
 
 	if not speaker:
+		push_warning("MockDialogueSystem: missing speaker %s, skipping step" % speaker_name)
 		_flow_idx += 1
 		_execute_next()  # skip missing NPC
 		return
+	if listener_name != "" and listener == null:
+		push_warning("MockDialogueSystem: missing listener %s, speaker %s will speak without pairing" % [listener_name, speaker_name])
 
 	# Check with ConversationManager (child of DialogueManager)
 	var cm = DialogueManager.get_conversation_manager()

@@ -44,6 +44,10 @@ func unregister(npc) -> void:
 ##   { ok: true }                              → proceed immediately
 ##   { ok: false, reason: "busy" }             → speaker is busy, ask to wait
 func request_speak(speaker, listener, priority: int) -> Dictionary:
+	if speaker == null or not is_instance_valid(speaker):
+		return { ok = false, reason = "missing_speaker" }
+	if listener == null or not is_instance_valid(listener):
+		return { ok = true, reason = "missing_listener" }
 	_ensure_registered(speaker)
 	_ensure_registered(listener)
 	var ss = _states[speaker]
@@ -108,11 +112,15 @@ func get_status(npc) -> String:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ensure_registered(npc) -> void:
+	if npc == null or not is_instance_valid(npc):
+		return
 	if npc not in _states:
 		register(npc)
 
 
 func _start_conversation(a, b, priority: int) -> void:
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b):
+		return
 	var chan = "%s_%s" % [a.get_instance_id(), b.get_instance_id()]
 	_states[a] = { state = NpcState.IN_CONVERSATION, partner = b, channel = chan, priority = priority, queue = [] }
 	_states[b] = { state = NpcState.IN_CONVERSATION, partner = a, channel = chan, priority = priority, queue = [] }

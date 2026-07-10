@@ -1,0 +1,56 @@
+[gd_scene load_steps=5 format=3 uid="uid://edmas_main_scene"]
+
+[ext_resource type="Script" path="res://scripts/edmas/main_edmas.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/edmas/api_client.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/edmas/patient_manager.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scens/edmas/HospitalMap.tscn" id="4"]
+
+[node name="Main_EDMAS" type="Control"]
+script = ExtResource("1")
+
+[node name="APIClient" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="UI" type="Control" parent="."]
+
+[node name="VBox" type="VBoxContainer" parent="UI"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 330.0
+offset_bottom = 360.0
+
+[node name="LoadDemoAButton" type="Button" parent="UI/VBox"]
+text = "Load Demo A"
+
+[node name="LoadDemoBButton" type="Button" parent="UI/VBox"]
+text = "Load Demo B"
+
+[node name="LoadDemoCButton" type="Button" parent="UI/VBox"]
+text = "Load Demo C"
+
+[node name="StepButton" type="Button" parent="UI/VBox"]
+text = "Step"
+
+[node name="ResetButton" type="Button" parent="UI/VBox"]
+text = "Reset"
+
+[node name="CurrentLocationLabel" type="Label" parent="UI/VBox"]
+text = "location: UNKNOWN"
+
+[node name="CurrentStateLabel" type="Label" parent="UI/VBox"]
+text = "state: UNKNOWN"
+
+[node name="BackendStatusLabel" type="Label" parent="UI/VBox"]
+text = "backend_status: UNKNOWN"
+
+[node name="ErrorLabel" type="Label" parent="UI/VBox"]
+text = "error: none"
+
+[node name="ViewportArea" type="Node2D" parent="."]
+
+[node name="HospitalMapManager" parent="ViewportArea" instance=ExtResource("4")]
+
+[node name="PatientManager" type="Node" parent="ViewportArea"]
+script = ExtResource("3")
+hospital_map_path = NodePath("../HospitalMapManager")
+

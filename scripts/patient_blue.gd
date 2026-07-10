@@ -10,3 +10,6 @@ func get_npc_name() -> String:
 
 func get_walk_flip_dirs() -> Array[String]:
 	return ["up", "down"]
+
+func get_npc_group() -> String:
+	return "dynamic_patients"
